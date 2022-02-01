@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Chess</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">
+
+    <div class="navbar"> 
+        <a href="chessHome.html"><button class="fas fa-arrow-circle-left" id="back-button"></button></a>
+        <span> Fischer Random </span>
+        <hr class="navLine">
+        
+    </div>
+
+
+</head>
+
+<body class="FischerRandom">
+    <br />
+    <div class="board">
+
+        <div class="a8 cell brown"><img class="cell brown" src="pieces/blackRook.png" alt="&#9820"></div>
+        <div class="cell tan"><img class="cell tan" src="pieces/blackKnight.png" alt="&#9822"></div>
+        <div class="cell brown"><img class="cell brown" src="pieces/blackBishop.png" alt="&#9821"></div>
+        <div class="cell tan"><img class="cell tan" src="pieces/blackQueen.png" alt="&#9818"></div>
+        <div class="cell brown"><img class="cell brown" src="pieces/blackKing.png" alt="&#9819"></div>
+        <div class="cell tan"><img class="cell tan" src="pieces/blackBishop.png" alt="&#9821"></div>
+        <div class="cell brown"><img class="cell brown" src="pieces/blackKnight.png" alt="&#9822"></div>
+        <div class="cell tan"><img class="cell tan" src="pieces/blackRook.png" alt="&#9820"></div>
+
+        <div class="a7 cell tan"><img class="a7 cell tan" src="pieces/blackPawn.png" alt="&#9823"></div>
+        <div class="cell brown"><img class="cell brown" src="pieces/blackPawn.png" alt="&#9823"></div>
+        <div class="cell tan"><img class="cell tan" src="pieces/blackPawn.png" alt="&#9823"></div>
+        <div class="cell brown"><img class="cell brown" src="pieces/blackPawn.png" alt="&#9823"></div>
+        <div class="cell tan"><img class="cell tan" src="pieces/blackPawn.png" alt="&#9823"></div>
+        <div class="cell brown"><img class="cell brown" src="pieces/blackPawn.png" alt="&#9823"></div>
+        <div class="cell tan"><img class="cell tan" src="pieces/blackPawn.png" alt="&#9823"></div>
+        <div class="cell brown"><img class="cell brown" src="pieces/blackPawn.png" alt="&#9823"></div>
+
+        <div class="cell brown" onclick="element.style.background='red';">test</div>
+        <div class="cell tan"></div>
+        <div class="cell brown"></div>
+        <div class="cell tan"></div>
+        <div class="cell brown"></div>
+        <div class="cell tan"></div>
+        <div class="cell brown"></div>
+        <div class="cell tan"></div>
+
+        <div class="cell tan"></div>
+        <div class="cell brown"></div>
+        <div class="cell tan"></div>
+        <div class="cell brown"></div>
+        <div class="cell tan"></div>
+        <div class="cell brown"></div>
+        <div class="cell tan"></div>
+        <div class="cell brown"></div>
+
+        <div class="cell brown"></div>
+        <div class="cell tan"></div>
+        <div class="cell brown"></div>
+        <div class="cell tan"></div>
+        <div class="cell brown"></div>
+        <div class="cell tan"></div>
+        <div class="cell brown"></div>
+        <div class="cell tan"></div>
+
+        <div class="cell tan"></div>
+        <div class="cell brown"></div>
+        <div class="cell tan"></div>
+        <div class="cell brown"></div>
+        <div class="cell tan"></div>
+        <div class="cell brown"></div>
+        <div class="cell tan"></div>
+        <div class="cell brown"></div>
+
+        <div class="cell brown"><img class="cell brown" src="pieces/whitePawn.png" alt="&#9817"></div>
+        <div class="cell tan"><img class="cell tan" src="pieces/whitePawn.png" alt="&#9817"></div>
+        <div class="cell brown"><img class="cell brown" src="pieces/whitePawn.png" alt="&#9817"></div>
+        <div class="cell tan"><img class="cell tan" src="pieces/whitePawn.png" alt="&#9817"></div>
+        <div class="cell brown"><img class="cell brown" src="pieces/whitePawn.png" alt="&#9817"></div>
+        <div class="cell tan"><img class="cell tan" src="pieces/whitePawn.png" alt="&#9817"></div>
+        <div class="cell brown"><img class="cell brown" src="pieces/whitePawn.png" alt="&#9817"></div>
+        <div class="cell tan"><img class="cell tan" src="pieces/whitePawn.png" alt="&#9817"></div>
+
+        <div class="cell tan"><img class="cell tan" src="pieces/whiteRook.png" alt="&#9814"></div>
+        <div class="cell brown"><img class="cell brown" src="pieces/whiteKnight.png" alt="&#9816"></div>
+        <div class="cell tan"><img class="cell tan" src="pieces/whiteBishop.png" alt="&#9815"></div>
+        <div class="cell brown"><img class="cell brown" src="pieces/whiteQueen.png" alt="&#9813"></div>
+        <div class="cell tan"><img class="cell tan" src="pieces/whiteKing.png" alt="&#9812"></div>
+        <div class="cell brown"><img class="cell brown" src="pieces/whiteBishop.png" alt="&#9815"></div>
+        <div class="cell tan"><img class="cell tan" src="pieces/whiteKnight.png" alt="&#9816"></div>
+        <div class="cell brown"><img class="cell brown" src="pieces/whiteRook.png" alt="&#9814"></div>
+
+    </div>
+
+    <script>
+        var element = document.getElementsByClassName("cell");
+        element.onclick = function() {
+            document.element.style.background = red;
+        }
+    </script>
+</body>
+
+</html>

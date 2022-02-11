@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Chess</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">
+
+    <div class="navbar"> 
+        <a href="chessHome.html"><button class="fas fa-arrow-circle-left" id="back-button"></button></a>
+        <span> Fischer Random </span>
+        <hr class="navLine">
+        
+    </div>
+
+
+</head>
+
+<body>
+    <canvas id="FischerRandom" width="800" height="800"></canvas>
+    <button type="button" onclick="javascript:startFischer();">Start Game</button>
+    <button type="button">Reset</button>
+</body>
+
+<script>
+
+    //initialize canvas
+    var canvas = document.getElementById('FischerRandom');
+
+    //initialize board and pieces
+    var board = new Array(64);
+
+    //create cell object
+    cell = {
+        "x": 0,
+        "y": 0,
+        "piece": "none",
+        "team": "none",
+        "squareColor": "none",
+    }
+
+    var cell = new Cell(getX(1), getY(1), "none", "none", "dark");
+    board.push(cell);
+
+    if(cell.piece == "none") {
+        alert("hello");
+    }
+
+    var color = "light";
+    var cell = new Cell(getX(1), getY(1), "none", "none", "dark");
+    for(var i=0; i < board.length; i++) {
+        board.push(cell);
+    }
+
+    
+    //constructor for cell
+    function Cell(x, y, piece, team, squareColor) {
+        this.x = x;
+        this.y = y;
+        this.piece = piece;
+        this.team = team;
+        this.squareColor = squareColor;
+    }
+
+    //used in drawBoard to draw each individual cell
+    function drawCell(index) {
+
+        var color = "light";
+        if(board[index]%2 == 1) {
+            color = "dark";
+        }
+
+        board[index].piece = "rook";
+        if(board[index].piece == "rook") {
+            alert("hello");
+        }
+
+
+
+        
+
+    }
+
+    function drawBoard() {
+        for(var i=0; i < board.length; i++) {
+            drawCell(board[i]);
+        }
+    }
+
+    function getX(index) {
+        var x = index % 8;
+        return x;
+    }
+
+    function getY(index) {
+        var y = Math.floor(index / 8);
+        return y;
+    }
+
+
+
+    
+</script>
+
+</html>

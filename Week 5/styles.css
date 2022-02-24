@@ -1,0 +1,149 @@
+*{
+    margin: 0;
+    padding: 0;
+    font-family: Century;
+    font-size: 50px;
+    background-color: white;
+    color: rgb(36, 112, 87);
+    text-decoration: none;
+
+    user-select: none;
+    -webkit-user-drag: none;
+
+}
+
+html {
+    height: 100%;
+}
+
+/* Home Page */
+
+.homePage {
+    text-align: center;
+}
+
+header {
+    padding-top: 180px;
+}
+
+li {
+    padding-top: 10px;
+}
+
+button{
+    color: black;
+    border-style: solid;
+    border-color: rgb(36, 112, 87);
+    font-size: 30px;
+    padding: 10px;
+    width: 300px;
+    border-radius: 30px;
+}
+
+button:hover {
+    background-color: rgb(36, 112, 87);
+    color: white;
+    transition: .5s;
+}
+
+footer {
+    color: black;
+    font-size: 15px;
+    padding-top: 50px;
+}
+
+/* Nav bar */
+
+.navbar {
+    background-color: white;
+    vertical-align: middle;
+}
+
+.navbar > span {
+    font-size: 30px;
+    color: black;
+}
+
+hr.navLine {
+    border: 2px solid black;
+}
+
+#back-button {
+    color: black;
+    border: none;
+    width: fit-content;
+    padding: 15px;
+}
+
+#back-button:hover {
+    background-color: white;
+    color: rgb(36, 112, 87);
+}
+
+/* Fischer Random */
+.FischerRandom {
+    background-color: rgb(36, 112, 87);
+    height: 100%;
+}
+
+.FischerBoard {
+    background-color: rgb(36, 112, 87);
+    padding-top: 40px;
+}
+
+.FischerButtons {
+    background-color: rgb(36, 112, 87);
+}
+
+#FischerRandom {
+    border: 10px solid black;
+}
+
+
+
+.board {
+    display: flex;
+    flex-wrap: wrap;
+    box-shadow: 0 8px 8px rgb(0 0 0 / 65%);
+    margin: auto;
+}
+
+#fischerButton:hover {
+    background-color: black;
+}
+
+.brown {
+    background: brown;
+}
+
+.tan {
+    background: tan;
+}
+
+.cell {
+    height: 80px;
+    width: 80px;
+    display: flex;
+    font-size: 45px;
+    color: black;
+    justify-content: center;
+    align-items: center;
+}
+
+.cell > img {
+    width: 70px;
+    height: 70px;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+
+
+.cell:active {
+    background:red;
+}
+
+
+/* Chaturanga */
+
+/* Camelot */

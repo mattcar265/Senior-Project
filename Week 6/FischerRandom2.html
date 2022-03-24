@@ -1,0 +1,1067 @@
+ <!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Chess</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">
+
+    <div class="navbar"> 
+        <a href="chessHome.html"><button class="fas fa-arrow-circle-left" id="back-button"></button></a>
+        <span> Fischer Random </span>
+        <hr class="navLine">
+        
+    </div>
+
+</head>
+
+<body class="FischerRandom">
+    <div class="FischerBoard" style="text-align:center;">
+        <canvas id="FischerRandom" width="640" height="640"></canvas>
+    </div>
+    <div class="FischerButtons" style="text-align:center;">
+        <button id="fischerButton" type="button" onclick="javascript:startFischer();">Start Game</button>
+        <button id="fischerButton" type="button">Reset</button>
+    </div>
+</body>
+
+<script>
+
+    function startFischer() {
+        //initialize canvas
+        var canvas = document.getElementById('FischerRandom');
+        var context = canvas.getContext("2d");
+
+        //board size
+        const size = 80;
+
+        //used to move a piece to and from index
+        var firstClick = true;
+        var from;
+        var to;
+
+        //en passant
+        var enPassant = false;
+        var enPasPiece = -1;
+
+        //turn (0 for white, 1 for black)
+        var turnCount = 0;
+        var turn = 0;
+
+        //initialize board and pieces
+        var board = new Array(64);
+
+        //create cell object
+        cell = {
+            "x": 0,
+            "y": 0,
+            "piece": "none",
+            "team": "none",
+            "squareColor": "none",
+            "highlight": 0
+        }
+
+        //fill the array with cells
+        for(var i=0; i < board.length; i++) {
+            var cell = new Cell(0, 0, "none", "none", "light","0");
+            cell.x = getX(i);
+            cell.y = getY(i);
+
+            //check for square color
+            if((getX(i) + getY(i))%2==1) {
+                color = "dark";
+            }
+            else {
+                color = "light";
+            }
+            cell.squareColor = color;
+
+            cell.highlight = 0;
+            board[i] = cell;
+        }
+
+        //constructor for cell
+        function Cell(x, y, piece, team, squareColor) {
+            this.x = x;
+            this.y = y;
+            this.piece = "none";
+            this.team = team;
+            this.squareColor = squareColor;
+        }
+
+        //initialize piece positions
+        //black
+        board[getIndex(0,0)].piece = "rook";
+        board[getIndex(0,0)].team = "black";
+        
+        board[getIndex(1,0)].piece = "knight";
+        board[getIndex(1,0)].team = "black";
+        
+        board[getIndex(2,0)].piece = "bishop";
+        board[getIndex(2,0)].team = "black";
+
+        board[getIndex(3,0)].piece = "queen";
+        board[getIndex(3,0)].team = "black";
+        
+        board[getIndex(4,0)].piece = "king";
+        board[getIndex(4,0)].team = "black";
+
+        board[getIndex(5,0)].piece = "bishop";
+        board[getIndex(5,0)].team = "black";
+
+        board[getIndex(6,0)].piece = "knight";
+        board[getIndex(6,0)].team = "black";
+
+        board[getIndex(7,0)].piece = "rook";
+        board[getIndex(7,0)].team = "black";
+
+        //black pawns
+        for(var i=0; i < 8; i++) {
+            board[getIndex(i,1)].piece = "pawn";
+            board[getIndex(i,1)].team = "black";
+        }
+
+        //white
+        board[getIndex(0,7)].piece = "rook";
+        board[getIndex(0,7)].team = "white";
+        
+        board[getIndex(1,7)].piece = "knight";
+        board[getIndex(1,7)].team = "white";
+        
+        board[getIndex(2,7)].piece = "bishop";
+        board[getIndex(2,7)].team = "white";
+
+        board[getIndex(3,7)].piece = "queen";
+        board[getIndex(3,7)].team = "white";
+        
+        board[getIndex(4,7)].piece = "king";
+        board[getIndex(4,7)].team = "white";
+
+        board[getIndex(5,7)].piece = "bishop";
+        board[getIndex(5,7)].team = "white";
+
+        board[getIndex(6,7)].piece = "knight";
+        board[getIndex(6,7)].team = "white";
+
+        board[getIndex(7,7)].piece = "rook";
+        board[getIndex(7,7)].team = "white";
+
+        //white pawns
+        for(var i=0; i < 8; i++) {
+            board[getIndex(i,6)].piece = "pawn";
+            board[getIndex(i,6)].team = "white";
+        }
+
+        //used in drawBoard to draw each individual cell
+        function drawCell(index) {
+
+            //get x and y of cell
+            var x = getX(index);
+            var y = getY(index);
+
+            //get coordinates of cell
+            var posX = x*size;
+            var posY = y*size;
+
+            //get color of square
+            if(board[index].squareColor == "light") {
+                context.fillStyle = "tan";
+            }
+            else {
+                context.fillStyle = "brown";
+            }
+            context.fillRect(posX,posY,size,size);
+
+            //determine if piece is on square and draw if it is
+            //check for black pieces
+            if(board[index].piece=="rook" && board[index].team=="black") {
+                rook = new Image;
+                rook.src = "pieces/blackRook.png";
+                rook.onload = function() {
+                    context.drawImage(rook,posX+10,posY+10);
+                }
+            }
+            if(board[index].piece=="knight" && board[index].team=="black") {
+                knight = new Image;
+                knight.src = "pieces/blackKnight.png";
+                knight.onload = function() {
+                    context.drawImage(knight,posX+10,posY+10);
+                }
+            }
+            if(board[index].piece=="bishop" && board[index].team=="black") {
+                bishop = new Image;
+                bishop.src = "pieces/blackBishop.png";
+                bishop.onload = function() {
+                    context.drawImage(bishop,posX+10,posY+10);
+                }
+            }
+            if(board[index].piece=="queen" && board[index].team=="black") {
+                queen = new Image;
+                queen.src = "pieces/blackQueen.png";
+                queen.onload = function() {
+                    context.drawImage(queen,posX+10,posY+10);
+                }
+            }
+            if(board[index].piece=="king" && board[index].team=="black") {
+                king = new Image;
+                king.src = "pieces/blackKing.png";
+                king.onload = function() {
+                    context.drawImage(king,posX+10,posY+10);
+                }
+            }
+            if(board[index].piece=="pawn" && board[index].team=="black") {
+                pawn = new Image;
+                pawn.src = "pieces/blackPawn.png";
+                pawn.onload = function() {
+                    context.drawImage(pawn,posX+10,posY+10);
+                }
+            }
+
+            //check for white pieces
+            if(board[index].piece=="rook" && board[index].team=="white") {
+                rookW = new Image;
+                rookW.src = "pieces/whiteRook.png";
+                rookW.onload = function() {
+                    context.drawImage(rookW,posX+10,posY+10);
+                }
+            }
+            if(board[index].piece=="knight" && board[index].team=="white") {
+                knightW = new Image;
+                knightW.src = "pieces/whiteKnight.png";
+                knightW.onload = function() {
+                    context.drawImage(knightW,posX+10,posY+10);
+                }
+            }
+            if(board[index].piece=="bishop" && board[index].team=="white") {
+                bishopW = new Image;
+                bishopW.src = "pieces/whiteBishop.png";
+                bishopW.onload = function() {
+                    context.drawImage(bishopW,posX+10,posY+10);
+                }
+            }
+            if(board[index].piece=="queen" && board[index].team=="white") {
+                queenW = new Image;
+                queenW.src = "pieces/whiteQueen.png";
+                queenW.onload = function() {
+                    context.drawImage(queenW,posX+10,posY+10);
+                }
+            }
+            if(board[index].piece=="king" && board[index].team=="white") {
+                kingW = new Image;
+                kingW.src = "pieces/whiteKing.png";
+                kingW.onload = function() {
+                    context.drawImage(kingW,posX+10,posY+10);
+                }
+            }
+            if(board[index].piece=="pawn" && board[index].team=="white") {
+                pawnW = new Image;
+                pawnW.src = "pieces/whitePawn.png";
+                pawnW.onload = function() {
+                    context.drawImage(pawnW,posX+10,posY+10);
+                }
+            }
+        }
+
+        //highlight cell and make move
+        function move(from, to) {
+
+            enPassant = false;
+
+            board[to].piece = board[from].piece;
+            board[to].team = board[from].team;
+        
+            board[from].piece = "none";
+            board[from].team = "none";
+            
+            drawCell(to);
+            drawCell(from);
+            turnCount++;
+            switchTurn();
+
+        }
+
+        function movePawnTwice(from, to) {
+
+            enPassant = true;
+
+
+            board[to].piece = board[from].piece;
+            board[to].team = board[from].team;
+
+            board[from].piece = "none";
+            board[from].team = "none";
+
+            drawCell(to);
+            drawCell(from);
+            turnCount++;
+            switchTurn();
+
+        }
+
+        //excludes: enPassant to false
+        function movePawn(from, to) {
+
+            fromX = getX(from);
+            toX = getX(to);
+
+            fromY = getY(from);
+            toY = getY(to);
+
+            if(enPassant) {
+                //check for left move
+                if(fromX-toX==1) {
+                    board[getIndex(fromX-1,fromY)].piece = "none";
+                    board[getIndex(fromX-1,fromY)].team = "none";
+
+                    board[to].piece = board[from].piece;
+                    board[to].team = board[from].team;
+
+                    board[from].piece = "none";
+                    board[from].team = "none";
+                    drawCell(getIndex(fromX-1,fromY));
+                }
+                //check for right move
+                if(fromX-toX==-1) {
+                    board[getIndex(fromX+1,fromY)].piece = "none";
+                    board[getIndex(fromX+1,fromY)].team = "none";
+
+                    board[to].piece = board[from].piece;
+                    board[to].team = board[from].team;
+
+                    board[from].piece = "none";
+                    board[from].team = "none";
+                    drawCell(getIndex(fromX+1,fromY));
+                }
+            }
+            else {
+                board[to].piece = board[from].piece;
+                board[to].team = board[from].team;
+
+                board[from].piece = "none";
+                board[from].team = "none";
+            }
+
+
+            drawCell(to);
+            drawCell(from);
+            turnCount++;
+            switchTurn();
+
+        }
+
+        function isValidMove(fromX, fromY, toX, toY) {
+
+            //x1 and y1 => highlighted piece coord
+            var fromIndex = getIndex(fromX, fromY);
+
+            //x2 and y2 => new click coord
+            var toIndex = getIndex(toX, toY);
+
+            //if same square
+            if(fromIndex == toIndex) return false;
+
+            //game logic
+            //white pawn
+            else if(board[from].piece == "pawn" && board[from].team == "white") {
+     
+                if(board[to].piece == "none" && enPassant == true) {
+                    //check if piece to the left is the en passant piece
+                    if(enPasPiece == getIndex(fromX-1, fromY) && fromX==toX+1 && fromY==toY+1) {
+                        movePawn(from, to);
+                        return true;
+                    }
+                    if(enPasPiece == getIndex(fromX+1, fromY) && fromX==toX-1 && fromY==toY+1) {
+                        movePawn(from, to);
+                        return true;
+                    }
+                }
+                if((board[to].piece == "none") && (fromY == 6 && toY == 4) && (fromX == toX)) {
+                    enPassant = true;
+                    enPasPiece = to;
+                    movePawnTwice(from, to);
+                    return true;
+                }
+                if(board[to].piece == "none" && (fromY-toY == 1) && (fromX == toX)) {
+                    enPassant = false;
+                    movePawn(from, to);
+                    return true;
+                }
+                if(board[to].piece != "none" && board[to].team == "black" && (toX == fromX-1 || toX == fromX+1) && toY == fromY-1) {
+                    enPassant = false;
+                    movePawn(from, to);
+                    return true;
+                }
+
+            }
+
+            //black pawn
+            else if(board[from].piece == "pawn" && board[from].team == "black") {
+                
+                if(board[to].piece == "none" && enPassant == true) {
+                    //check if piece to the left is the en passant piece
+                    if(enPasPiece == getIndex(fromX-1, fromY) && fromX==toX+1 && fromY==toY-1) {
+                        movePawn(from, to);
+                        return true;
+                    }
+                    if(enPasPiece == getIndex(fromX+1, fromY) && fromX==toX-1 && fromY==toY-1) {
+                        movePawn(from, to);
+                        return true;
+                    }
+                }
+                if((board[to].piece == "none") && (fromY == 1 && toY == 3) && (fromX == toX)) {
+                    enPassant = true;
+                    enPasPiece = to;
+                    movePawnTwice(from, to);
+                    return true;
+                }
+                if(board[to].piece == "none" && (fromY-toY == -1) && (fromX == toX)) {
+                    enPassant = false;
+                    movePawn(from, to);
+                    return true;
+                }
+                if(board[to].piece != "none" && board[to].team == "white" && (toX == fromX-1 || toX == fromX+1) && toY == fromY+1) {
+                    enPassant = false;
+                    movePawn(from, to);
+                    return true;
+                }
+
+            }
+
+            //king
+            else if(board[from].piece == "king") {
+
+                if( board[from].team != board[to].team && ((toX == fromX-1) || (toX == fromX+1) || (toX == fromX)) && ((toY == fromY-1) || (toY == fromY+1) || (toY == fromY)) ) {
+                    move(from, to);
+                    return true;
+                }
+            }
+
+            //knight
+            else if(board[from].piece == "knight") {
+
+                if(board[from].team != board[to].team) {
+
+                    if( (fromX == toX+1 || fromX == toX-1) && (fromY == toY+2 || fromY == toY-2) ) {
+                        move(from, to);
+                        return true;
+                    }
+                    if( (fromX == toX+2 || fromX == toX-2) && (fromY == toY+1 || fromY == toY-1) ) {
+                        move(from, to);
+                        return true;
+                    }
+                }
+            }
+
+            //bishop
+            else if(board[from].piece == "bishop") {
+
+                if(board[from].team != board[to].team) {
+
+                    var distanceX = toX - fromX;
+                    var distanceY = toY - fromY;
+
+                    //direction
+                    var direction = "none";
+                    //if distanceX is negative and distanceY is negative then TOPLEFT
+                    if(distanceX < 0 && distanceY < 0) {
+                        direction = "upleft";
+                    }
+                    //if distanceX is negative and distanceY is positive then BOTLEFT
+                    if(distanceX < 0 && distanceY > 0) {
+                        direction = "downleft";
+                    }
+                    //if distanceX is positive and distanceY is positive then BOTRIGHT
+                    if(distanceX > 0 && distanceY > 0) {
+                        direction = "downright";
+                    }
+                    //if distanceX is positive and distanceY is negative then TOPRIGHT
+                    if(distanceX > 0 && distanceY < 0) {
+                        direction = "upright";
+                    }
+
+                    if(Math.abs(distanceX) == Math.abs(distanceY)) {
+
+                        var piecesBetween = 0;
+                        for(var i=1; i < Math.abs(distanceX); i++) {
+
+                            if(direction == "upleft") {
+                                if(board[getIndex(fromX-i, fromY-i)].piece == "none") {
+                                    piecesBetween += 0;
+                                }
+                                else {
+                                    piecesBetween += 1;
+                                }
+                            }
+
+                            if(direction == "downleft") {
+
+                                if(board[getIndex(fromX-i, fromY+i)].piece == "none") {
+                                    piecesBetween += 0;
+                                }
+                                else {
+                                    piecesBetween += 1;
+                                }
+                            }
+
+                            if(direction == "downright") {
+
+                                if(board[getIndex(fromX+i, fromY+i)].piece == "none") {
+                                    piecesBetween += 0;
+                                }
+                                else {
+                                    piecesBetween += 1;
+                                }
+                            }
+
+                            if(direction == "upright") {
+
+                                if(board[getIndex(fromX+i, fromY-i)].piece == "none") {
+                                    piecesBetween += 0;
+                                }
+                                else {
+                                    piecesBetween += 1;
+                                }
+                            }
+                                
+
+                        }
+                        if(piecesBetween == 0) {
+                            move(from, to);
+                            return true;
+                        }
+                        
+                    }
+                    
+                }
+            }
+
+            //queen
+            else if(board[from].piece == "queen") {
+
+                if(board[from].team != board[to].team) {
+
+                    //checks for a diagonal move
+                    if(fromX != toX && fromY != toY) {
+
+                        var distanceX = toX - fromX;
+                        var distanceY = toY - fromY;
+
+                        //direction
+                        var direction = "none";
+                        //if distanceX is negative and distanceY is negative then TOPLEFT
+                        if(distanceX < 0 && distanceY < 0) {
+                            direction = "upleft";
+                        }
+                        //if distanceX is negative and distanceY is positive then BOTLEFT
+                        if(distanceX < 0 && distanceY > 0) {
+                            direction = "downleft";
+                        }
+                        //if distanceX is positive and distanceY is positive then BOTRIGHT
+                        if(distanceX > 0 && distanceY > 0) {
+                            direction = "downright";
+                        }
+                        //if distanceX is positive and distanceY is negative then TOPRIGHT
+                        if(distanceX > 0 && distanceY < 0) {
+                            direction = "upright";
+                        }
+
+                        if(Math.abs(distanceX) == Math.abs(distanceY)) {
+
+                            var piecesBetween = 0;
+                            for(var i=1; i < Math.abs(distanceX); i++) {
+
+                                if(direction == "upleft") {
+                                    if(board[getIndex(fromX-i, fromY-i)].piece == "none") {
+                                        piecesBetween += 0;
+                                    }
+                                    else {
+                                        piecesBetween += 1;
+                                    }
+                                }
+
+                                if(direction == "downleft") {
+
+                                    if(board[getIndex(fromX-i, fromY+i)].piece == "none") {
+                                        piecesBetween += 0;
+                                    }
+                                    else {
+                                        piecesBetween += 1;
+                                    }
+                                }
+
+                                if(direction == "downright") {
+
+                                    if(board[getIndex(fromX+i, fromY+i)].piece == "none") {
+                                        piecesBetween += 0;
+                                    }
+                                    else {
+                                        piecesBetween += 1;
+                                    }
+                                }
+
+                                if(direction == "upright") {
+
+                                    if(board[getIndex(fromX+i, fromY-i)].piece == "none") {
+                                        piecesBetween += 0;
+                                    }
+                                    else {
+                                        piecesBetween += 1;
+                                    }
+                                }
+                            }
+                            if(piecesBetween == 0) {
+                                move(from, to);
+                                return true;
+                            }
+                        
+                        
+                        }
+
+                    }
+
+                    //checks for a straight move
+                    else {
+
+                        var distanceX = toX - fromX;
+                        var distanceY = toY - fromY;
+
+                        //direction
+                        var direction = "none";
+                        //if distanceX is 0 and distanceY is negative then UP
+                        if(distanceX == 0 && distanceY < 0) {
+                            direction = "up";
+                        }
+                        //if distanceX is 0 and distanceY is positive then down
+                        if(distanceX == 0 && distanceY > 0) {
+                            direction = "down";
+                        }
+                        //if distanceX is positive and distanceY is 0 then right
+                        if(distanceX > 0 && distanceY == 0) {
+                            direction = "right";
+                        }
+                        //if distanceX is negative and distanceY is 0 then left
+                        if(distanceX < 0 && distanceY == 0) {
+                            direction = "left";
+                        }
+                        
+                    }
+
+                    if(distanceX == 0) {
+
+                        var piecesBetween = 0;
+                        for(var i=1; i < Math.abs(distanceY); i++) {
+
+                            if(direction == "up") {
+                                if(board[getIndex(fromX, fromY-i)].piece == "none") {
+                                    piecesBetween += 0;
+                                }
+                                else {
+                                    piecesBetween += 1;
+                                }
+                            }
+
+                            if(direction == "down") {
+
+                                if(board[getIndex(fromX, fromY+i)].piece == "none") {
+                                    piecesBetween += 0;
+                                }
+                                else {
+                                    piecesBetween += 1;
+                                }
+                            }
+                        }
+                        if(piecesBetween == 0) {
+                            move(from, to);
+                            return true;
+                        }
+                    }
+
+                    if(distanceY == 0) {
+                        
+                        var piecesBetween = 0;
+                        for(var i=1; i < Math.abs(distanceX); i++) {
+                            if(direction == "right") {
+
+                                if(board[getIndex(fromX+i, fromY)].piece == "none") {
+                                    piecesBetween += 0;
+                                }
+                                else {
+                                    piecesBetween += 1;
+                                }
+                            }
+
+                            if(direction == "left") {
+
+                                if(board[getIndex(fromX-i, fromY-i)].piece == "none") {
+                                    piecesBetween += 0;
+                                }
+                                else {
+                                    piecesBetween += 1;
+                                }
+                            }
+                        }
+                        if(piecesBetween == 0) {
+                            move(from, to);
+                            return true;
+                        }
+                    
+                    }
+                    
+                    
+                } 
+            } //end check for queen
+
+            //rook
+            else if(board[from].piece == "rook") {
+
+                if(board[from].team != board[to].team) {
+
+                    if(fromX == toX || fromY == fromY) {
+
+                        var distanceX = toX - fromX;
+                        var distanceY = toY - fromY;
+
+                        //direction
+                        var direction = "none";
+                        //if distanceX is 0 and distanceY is negative then UP
+                        if(distanceX == 0 && distanceY < 0) {
+                            direction = "up";
+                        }
+                        //if distanceX is 0 and distanceY is positive then down
+                        if(distanceX == 0 && distanceY > 0) {
+                            direction = "down";
+                        }
+                        //if distanceX is positive and distanceY is 0 then right
+                        if(distanceX > 0 && distanceY == 0) {
+                            direction = "right";
+                        }
+                        //if distanceX is negative and distanceY is 0 then left
+                        if(distanceX < 0 && distanceY == 0) {
+                            direction = "left";
+                        }
+                    }
+
+                    if(distanceX == 0) {
+
+                        var piecesBetween = 0;
+                        for(var i=1; i < Math.abs(distanceY); i++) {
+
+                            if(direction == "up") {
+                                if(board[getIndex(fromX, fromY-i)].piece == "none") {
+                                    piecesBetween += 0;
+                                }
+                                else {
+                                    piecesBetween += 1;
+                                }
+                            }
+
+                            if(direction == "down") {
+
+                                if(board[getIndex(fromX, fromY+i)].piece == "none") {
+                                    piecesBetween += 0;
+                                }
+                                else {
+                                    piecesBetween += 1;
+                                }
+                            }
+                        }
+                        if(piecesBetween == 0) {
+                            move(from, to);
+                            return true;
+                        }
+                    }
+
+                    if(distanceY == 0) {
+
+                        var piecesBetween = 0;
+                        for(var i=1; i < Math.abs(distanceX); i++) {
+                            if(direction == "right") {
+
+                                if(board[getIndex(fromX+i, fromY)].piece == "none") {
+                                    piecesBetween += 0;
+                                }
+                                else {
+                                    piecesBetween += 1;
+                                }
+                            }
+
+                            if(direction == "left") {
+
+                                if(board[getIndex(fromX-i, fromY-i)].piece == "none") {
+                                    piecesBetween += 0;
+                                }
+                                else {
+                                    piecesBetween += 1;
+                                }
+                            }
+                        }
+                        if(piecesBetween == 0) {
+                            move(from, to);
+                            return true;
+                        }
+                    
+                    }
+                    
+                } 
+            } //end of rook check
+            from = -1;
+            to = -1;
+            return false;
+
+        } //end isValidMove
+
+        function checkKingMoves(fromX, fromY, xDif, yDif) {
+
+            var toX = fromX + xDif;
+            var toY = fromY + yDif;
+            var count = 0;
+
+            if(board[from].piece == "king") {
+                //check if the king moving left is within the board
+                if(getIndex(fromX-1, fromY) >= 0 && getIndex(toX, toY) <= 64) {
+                    //board[getIndex(fromX-1, fromY)].piece == "none" &&
+                    //check if the left is empty
+                    if(board[getIndex(toX, toY)].piece == "none") {
+                        count++;
+                    }
+                    //if not empty, check if that piece is on the same team
+                    else if(board[getIndex(toX, toY)].team == kingTeam) {
+                        count = count + 0;
+                    }
+                    //if the piece is on the opposite team
+                    else if((board[getIndex(toX, toY)].team == "black" && kingTeam == "white") || (board[getIndex(toX, toY)].team == "white" && kingTeam == "black")) {
+                        //if the piece is protected, don't add to count
+                        if(isProtected(toX, toY)) {
+                            count = count + 0;
+                        }
+                        //if the piece is unprotected, add to count
+                        else if(!isProtected(toX, toY)) {
+                            count = count + 1;
+                        }
+                        
+                    }
+                }
+
+            }   
+            else {
+                return;
+            }
+
+            return count;
+        }
+
+        //returns number of king moves available, along with number of saving moves
+        function countKingMoves(fromX, fromY, toX, toY) {
+
+            //get king team
+            var kingTeam = "none";
+            if(board[getIndex(fromX,fromY)].team == "white") {
+                kingTeam = "white";
+            }
+            else {
+                kingTeam = "black";
+            }
+
+            var count = checkKingMoves(fromX, fromY, -1, 0) + checkKingMoves(fromX, fromY, -1, 1) + checkKingMoves(fromX, fromY, 0, 1) + checkKingMoves(fromX, fromY, 1, 1)
+                    + checkKingMoves(fromX, fromY, 1, 0) + checkKingMoves(fromX, fromY, 1, -1) + checkKingMoves(fromX, fromY, 0, -1) + checkKingMoves(fromX, fromY, -1, -1);
+
+            //king
+            if(board[from].piece == "king") {
+                //check if the king moving left is within the board
+                if(getIndex(fromX-1, fromY) >= 0 && getIndex(fromX-1, fromY) <= 64) {
+                    //board[getIndex(fromX-1, fromY)].piece == "none" &&
+                    //check if the left is empty
+                    if(board[getIndex(fromX-1, fromY)].piece == "none") {
+                        count++;
+                    }
+                    //if not empty, check if that piece is on the same team
+                    else if(board[getIndex(fromX-1, fromY)].team == kingTeam) {
+                        count = count + 0;
+                    }
+                    //if the piece is on the opposite team
+                    else if((board[getIndex(fromX-1, fromY)].team == "black" && kingTeam == "white") || (board[getIndex(fromX-1, fromY)].team == "white" && kingTeam == "black")) {
+                        //if the piece is protected, don't add to count
+                        if(isProtected(toX, toY)) {
+                            count = count + 0;
+                        }
+                        //if the piece is unprotected, add to count
+                        else if(!isProtected(toX, toY)) {
+                            count = count + 1;
+                        }
+                        
+                    }
+                }
+
+            }   
+            else {
+                return;
+            }
+
+            return count;
+        }
+
+        //boolean check if piece is protected
+        function isProtected(pieceX, pieceY) {
+            //check piece's team
+            var pieceTeam = board[getIndex(pieceX, pieceY)];
+            var isProtected = false;
+
+            for(var i = 0; i < board.length; i++) {
+                if(board[i].team == pieceTeam) {
+                    if(isValidMove(getX(i), getY(i), pieceX, pieceY)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function switchTurn() {
+            turn = turnCount % 2;
+            return;
+        }
+
+
+
+        function highlight(index) {
+
+            //coordinates
+            var x = getX(index);
+            var y = getY(index);
+
+            //get coordinates of cell for canvas
+            var posX = x*size + 2;
+            var posY = y*size + 2;
+
+            var prevHighlight = 0;
+            
+            //for loop to check if any other cell is highlighted, and unhighlight it
+            for(var i=0; i < board.length; i++) {
+                //if yes, unhighlight it
+                if(board[i].highlight == 1) {
+                    prevHighlight = board[i];
+
+                    var thisX = getX(i)*size + 2;
+                    var thisY = getY(i)*size + 2;
+
+                    context.beginPath();
+                    context.lineWidth = "4";
+                    
+                    //determine if dark or light square and remove highlight
+                    if(board[i].squareColor == "light") {
+                        context.strokeStyle = "tan";
+                    }
+                    else {
+                        context.strokeStyle = "brown";
+                    }
+
+                    //remove red border
+                    context.rect(thisX, thisY, 76, 76);
+                    context.stroke();
+                    board[i].highlight = 0;
+                }
+            }
+
+            if((turn == 0 && board[index].team == "white") || (turn == 1 && board[index].team == "black")) {
+                //if unhighlighted, highlight it
+                if(board[getIndex(x,y)].highlight == 0 && board[getIndex(x,y)].piece != "none") {
+                    board[getIndex(x,y)].highlight = 1;
+                    context.beginPath();
+                    context.lineWidth = "4";
+                    context.strokeStyle = "red";
+                    context.rect(posX, posY, 76, 76);
+                    context.stroke();
+                    firstClick = false;
+                    return true;
+                }
+            }
+            else {
+                return false;
+            }
+            
+        }
+
+        //assign  click to global variable fromIndex
+        //if fromIndex != -1, next click to global variable toIndex
+
+        //deal with click
+        function getClick() {
+            
+            var canvasLeft = canvas.offsetLeft;
+            var canvasTop = canvas.offsetTop;
+
+            //coordinates of x and y minus the offset of the canvas
+            var x = event.pageX - canvasLeft;
+            var y = event.pageY - canvasTop;
+
+            //divide coordinates by space to get an integer value
+            var space = canvas.width/8;
+            var xCoord = Math.floor(x / space);
+            var yCoord = Math.floor(y / space);
+            var index = xCoord + (yCoord * 8);
+
+            clickCheck(index);
+            
+        }
+
+        function clickCheck(index) {
+            if(highlight(index) == true) {
+                firstClick = false;
+                from = index;
+                return;
+            }
+            else {
+                to = index;
+                isValidMove(getX(from), getY(from), getX(to), getY(to));
+            }
+        }
+
+
+        function drawBoard() {
+            /*
+            
+            */
+            for(var i=0; i < board.length; i++) {
+                drawCell(i);
+            }
+        }
+
+        function getX(index) {
+            var x = index % 8;
+            return x;
+        }
+
+        function getY(index) {
+            var y = Math.floor(index / 8);
+            return y;
+        }
+
+        function getIndex(x,y) {
+            return y*8 + x;
+        }
+
+
+        //-------------------------------------------------------------------------
+        // Bot Section
+        //-------------------------------------------------------------------------
+
+        function bot() {
+            
+        }
+
+        //check for click event
+
+        canvas.addEventListener('click', getClick, false);
+        //canvas.addEventListener('click', second, false);
+
+        drawBoard();
+
+
+
+    }
+    
+
+    
+</script>
+
+</html>

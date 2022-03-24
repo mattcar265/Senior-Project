@@ -8,7 +8,7 @@
 
     <div class="navbar"> 
         <a href="chessHome.html"><button class="fas fa-arrow-circle-left" id="back-button"></button></a>
-        <span> Fischer Random </span>
+        <span> Chess </span>
         <hr class="navLine">
         
     </div>
@@ -20,13 +20,14 @@
         <canvas id="FischerRandom" width="640" height="640"></canvas>
     </div>
     <div class="FischerButtons" style="text-align:center;">
-        <button id="fischerButton" type="button" onclick="javascript:startFischer();">Start Game</button>
-        <button id="fischerButton" type="button">Reset</button>
+        <button id="fischerButton" type="button" onclick="javascript:startFischer();">Reset</button>
     </div>
 </body>
 
 <script>
 
+    startFischer();
+    
     function startFischer() {
         //initialize canvas
         var canvas = document.getElementById('FischerRandom');

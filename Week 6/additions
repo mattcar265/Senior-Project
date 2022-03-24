@@ -1,1 +1,5 @@
-
+- Added turntaking
+- Redid highlighting to work correctly
+- Redid piece moving to allow for taking pieces
+- Added en passant
+- Created bot (currently does not make moves)

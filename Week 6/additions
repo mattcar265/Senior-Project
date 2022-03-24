@@ -3,3 +3,4 @@
 - Redid piece moving to allow for taking pieces
 - Added en passant
 - Created bot (currently does not make moves)
+- Added a reset button

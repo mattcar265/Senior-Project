@@ -1,0 +1,2 @@
+- Optimized move function to remove 3 other functions and get rid of a lot of code
+- Organized isValidMove to make checking for checkmate easier

@@ -1,0 +1,6 @@
+- Added function to detect win
+- Added castling
+- Added promotion for pawns
+
+To Do:
+- Start a basic AI function

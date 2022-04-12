@@ -1,0 +1,6 @@
+- Added function to detect win
+- Added castling
+
+To Do:
+- Add promotion
+- Start a basic AI function

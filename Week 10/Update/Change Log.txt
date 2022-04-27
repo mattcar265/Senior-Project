@@ -1,10 +1,7 @@
 Design
-- Added flexbox to fix layout
+- Changed layout and colors
+- Added a button to toggle from bot to human game
 
 AI
 - Added EvaluateBoard to return a heuristic
-
-
-AI notes
-- Each piece has a weight
-- Each piece has different value on specific squares
+- Made bot able to move on its own

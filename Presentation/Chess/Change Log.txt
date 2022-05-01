@@ -1,0 +1,10 @@
+Design
+- Added flexbox to fix layout
+
+AI
+- Added EvaluateBoard to return a heuristic
+
+
+AI notes
+- Each piece has a weight
+- Each piece has different value on specific squares

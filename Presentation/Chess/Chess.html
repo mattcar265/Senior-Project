@@ -1,0 +1,1997 @@
+ <!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Chess</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">
+
+    <div class="wrapper"> 
+        <div class="shadow">
+            <a class="fas fa-thin fa-robot" id="logo"></a>
+            <span> CHESS </span>
+        </div>
+    </div>
+
+</head>
+
+<body>
+    <div class="FischerRandom">
+        <div class="FischerWhite">
+            <canvas id="FischerPiecesWhite" width="640" height="64"></canvas>
+        </div>
+        <div class="FischerBoard" style="text-align:center;">
+            
+            <canvas id="FischerRandom" width="640" height="640"></canvas>
+
+        </div>
+        <div class="FischerBlack">
+            <canvas id="FischerPiecesBlack" width="640" height="64"></canvas>
+        </div>
+        <div class="FischerBoard2" style="text-align:center;">
+            <button id="fischerButton" type="button" onclick="javascript:startFischer();">Reset</button>
+            <button id="fischerButton2" type="button" onclick="javascript:changeMode();">Human</button>
+        </div>
+    </div>
+</body>
+
+<script>
+
+    var mode = "Human";
+    var audio = new Audio('sound.wav');
+
+    startFischer();
+
+    function changeMode() {
+        if(mode == "Human") mode = "AI";
+        else mode = "Human";
+        document.querySelector('#fischerButton2').innerHTML = mode;
+        
+    }
+    
+    function startFischer() {
+        //initialize canvas
+        var canvas = document.getElementById('FischerRandom');
+        var context = canvas.getContext("2d");
+
+        //board size
+        const size = 80;
+
+        //used to move a piece to and from index
+        var firstClick = true;
+        var from = -1;
+        var to = -1;
+
+        //en passant
+        var enPassant = false;
+        var enPasPiece = -1;
+
+        //turn (0 for white, 1 for black)
+        var turnCount = 0;
+        var turn = 0;
+
+        //initialize board and pieces
+        var board = new Array(64);
+
+        //castling
+        var whiteKingMoved = false;
+        var blackKingMoved = false;
+        var a1RookMoved = false;
+        var h1RookMoved = false;
+        var a8RookMoved = false;
+        var h8RookMoved = false;        
+
+        //create cell object
+        cell = {
+            "x": 0,
+            "y": 0,
+            "piece": "none",
+            "team": "none",
+            "squareColor": "none",
+            "highlight": 0
+        }
+
+        //fill the array with cells
+        for(var i=0; i < board.length; i++) {
+            var cell = new Cell(0, 0, "none", "none", "light","0");
+            cell.x = getX(i);
+            cell.y = getY(i);
+
+            //check for square color
+            if((getX(i) + getY(i))%2==1) color = "dark";
+            else color = "light";
+            cell.squareColor = color;
+
+            cell.highlight = 0;
+            board[i] = cell;
+        }
+
+        //constructor for cell
+        function Cell(x, y, piece, team, squareColor) {
+            this.x = x;
+            this.y = y;
+            this.piece = "none";
+            this.team = team;
+            this.squareColor = squareColor;
+        }
+
+        //manually places piece in given position
+        function placePiece(team, piece, x, y) {
+            board[getIndex(x,y)].piece = piece;
+            board[getIndex(x,y)].team = team;
+        }
+
+        //initialize piece positions
+        //black
+        placePiece("black", "rook", 0, 0);
+        placePiece("black", "knight", 1, 0);
+        placePiece("black", "bishop", 2, 0);
+        placePiece("black", "queen", 3, 0);
+        placePiece("black", "king", 4, 0);
+        placePiece("black", "bishop", 5, 0);
+        placePiece("black", "knight", 6, 0);
+        placePiece("black", "rook", 7, 0);
+        for(var i=0; i < 8; i++) placePiece("black", "pawn", i, 1);
+
+        //white
+        placePiece("white", "rook", 0, 7);
+        placePiece("white", "knight", 1, 7);
+        placePiece("white", "bishop", 2, 7);
+        placePiece("white", "queen", 3, 7);
+        placePiece("white", "king", 4, 7);
+        placePiece("white", "bishop", 5, 7);
+        placePiece("white", "knight", 6, 7);
+        placePiece("white", "rook", 7, 7);
+        for(var i=0; i < 8; i++) placePiece("white", "pawn", i, 6);
+
+        //used in drawBoard to draw each individual cell
+        function drawCell(index) {
+            //get x and y of cell
+            var x = getX(index);
+            var y = getY(index);
+
+            //get coordinates of cell
+            var posX = x*size;
+            var posY = y*size;
+
+            //get color of square
+            if(board[index].squareColor == "light") context.fillStyle = "beige";
+            else context.fillStyle = "burlywood";
+            context.fillRect(posX,posY,size,size);
+
+            //determine if piece is on square and draw if it is
+            //check for black pieces
+            if(board[index].piece=="rook" && board[index].team=="black") {
+                rook = new Image;
+                rook.src = "pieces/blackRook.png";
+                rook.onload = function() {
+                    context.drawImage(rook,posX+10,posY+10);
+                }
+            }
+            if(board[index].piece=="knight" && board[index].team=="black") {
+                knight = new Image;
+                knight.src = "pieces/blackKnight.png";
+                knight.onload = function() {
+                    context.drawImage(knight,posX+10,posY+10);
+                }
+            }
+            if(board[index].piece=="bishop" && board[index].team=="black") {
+                bishop = new Image;
+                bishop.src = "pieces/blackBishop.png";
+                bishop.onload = function() {
+                    context.drawImage(bishop,posX+10,posY+10);
+                }
+            }
+            if(board[index].piece=="queen" && board[index].team=="black") {
+                queen = new Image;
+                queen.src = "pieces/blackQueen.png";
+                queen.onload = function() {
+                    context.drawImage(queen,posX+10,posY+10);
+                }
+            }
+            if(board[index].piece=="king" && board[index].team=="black") {
+                king = new Image;
+                king.src = "pieces/blackKing.png";
+                king.onload = function() {
+                    context.drawImage(king,posX+10,posY+10);
+                }
+            }
+            if(board[index].piece=="pawn" && board[index].team=="black") {
+                pawn = new Image;
+                pawn.src = "pieces/blackPawn.png";
+                pawn.onload = function() {
+                    context.drawImage(pawn,posX+10,posY+10);
+                }
+            }
+
+            //check for white pieces
+            if(board[index].piece=="rook" && board[index].team=="white") {
+                rookW = new Image;
+                rookW.src = "pieces/whiteRook.png";
+                rookW.onload = function() {
+                    context.drawImage(rookW,posX+10,posY+10);
+                }
+            }
+            if(board[index].piece=="knight" && board[index].team=="white") {
+                knightW = new Image;
+                knightW.src = "pieces/whiteKnight.png";
+                knightW.onload = function() {
+                    context.drawImage(knightW,posX+10,posY+10);
+                }
+            }
+            if(board[index].piece=="bishop" && board[index].team=="white") {
+                bishopW = new Image;
+                bishopW.src = "pieces/whiteBishop.png";
+                bishopW.onload = function() {
+                    context.drawImage(bishopW,posX+10,posY+10);
+                }
+            }
+            if(board[index].piece=="queen" && board[index].team=="white") {
+                queenW = new Image;
+                queenW.src = "pieces/whiteQueen.png";
+                queenW.onload = function() {
+                    context.drawImage(queenW,posX+10,posY+10);
+                }
+            }
+            if(board[index].piece=="king" && board[index].team=="white") {
+                kingW = new Image;
+                kingW.src = "pieces/whiteKing.png";
+                kingW.onload = function() {
+                    context.drawImage(kingW,posX+10,posY+10);
+                }
+            }
+            if(board[index].piece=="pawn" && board[index].team=="white") {
+                pawnW = new Image;
+                pawnW.src = "pieces/whitePawn.png";
+                pawnW.onload = function() {
+                    context.drawImage(pawnW,posX+10,posY+10);
+                }
+            }
+        }  
+        
+        //check for win
+        function checkWin() {
+            var whiteKing = false;
+            var blackKing = false;
+
+            //check white
+            for(var i=0; i < board.length; i++) {
+                if(board[i].piece == "king") {
+                    if(board[i].team == "black") blackKing = true;
+                    if(board[i].team == "white") whiteKing = true;
+                }
+            }
+            if(blackKing == false) alert("White Wins");
+            if(whiteKing == false) alert("Black Wins");
+        }
+
+        //called once possible  move is validated in isValidMove()
+        function move(piece, from, to) {
+            //taken piece
+            var takenPiece = "none";
+
+            //check for castling privileges
+            if(piece == "rook" && from == 0) a8RookMoved = true;
+            if(piece == "rook" && from == 7) h8RookMoved = true;
+            if(piece == "rook" && from == 56) a1RookMoved = true;
+            if(piece == "rook" && from == 63) h1RookMoved = true;
+            if((piece == "king" || piece == "castleKing") && board[from].team == "white") whiteKingMoved = true;
+            if((piece == "king" || piece == "castleKing") && board[from].team == "black") blackKingMoved = true;
+            
+            if(piece == "pawn") {
+
+                var fromX = getX(from);
+                var fromY = getY(from);
+                var toX = getX(to);
+                var toY = getY(to);
+
+                var turnDone = false;
+
+                if(enPassant) {
+                    //check for left move
+                    if(fromX-toX==1) {
+                        takenPiece = board[getIndex(fromX-1,fromY)].piece;
+                        takenPieceTeam = board[getIndex(fromX-1,fromY)].team;
+                        board[getIndex(fromX-1,fromY)].piece = "none";
+                        board[getIndex(fromX-1,fromY)].team = "none";
+
+                        board[to].piece = board[from].piece;
+                        board[to].team = board[from].team;
+
+                        board[from].piece = "none";
+                        board[from].team = "none";
+                        drawCell(getIndex(fromX-1,fromY));
+                    }
+                    //check for right move
+                    if(fromX-toX==-1) {
+                        takenPiece = board[getIndex(fromX+1,fromY)].piece;
+                        takenPieceTeam = board[getIndex(fromX+1,fromY)].team;
+                        board[getIndex(fromX+1,fromY)].piece = "none";
+                        board[getIndex(fromX+1,fromY)].team = "none";
+
+                        board[to].piece = board[from].piece;
+                        board[to].team = board[from].team;
+
+                        board[from].piece = "none";
+                        board[from].team = "none";
+                        drawCell(getIndex(fromX+1,fromY));
+                    }
+                }
+                else {
+                    takenPiece = board[to].piece;
+                    takenPieceTeam = board[to].team;
+                    board[to].piece = board[from].piece;
+                    board[to].team = board[from].team;
+
+                    board[from].piece = "none";
+                    board[from].team = "none";
+                }
+            }
+            else if(piece == "pawnTwice") {
+                enPassant = true;
+
+                takenPiece = board[to].piece;
+                takenPieceTeam = board[to].team;
+                board[to].piece = board[from].piece;
+                board[to].team = board[from].team;
+
+                board[from].piece = "none";
+                board[from].team = "none";
+            }
+            else {
+                enPassant = false;
+
+                takenPiece = board[to].piece;
+                takenPieceTeam = board[to].team;
+                board[to].piece = board[from].piece;
+                board[to].team = board[from].team;
+
+                board[from].piece = "none";
+                board[from].team = "none";
+                if(piece == "castleRook") {
+                    drawCell(to);
+                    drawCell(from);
+                    return;
+                }
+            }
+            //promotion
+            if(piece == "promote") {
+                board[to].piece = "queen";
+                if(turn % 2 == 0) board[to].team = "white";
+                else board[to].team = "black";
+                board[from].piece = "none";
+                board[from].team = "none";
+            }
+
+            checkForTake(takenPiece, takenPieceTeam);
+            drawCell(to);
+            drawCell(from);
+            turnCount++;
+            switchTurn();
+            audio.play();
+        }
+
+        whitePiecesTaken = 0;
+        blackPiecesTaken = 0;
+
+        function checkForTake(takenPiece, takenPieceTeam) {
+            //initialize canvas
+            if(takenPieceTeam == "white") {
+                var canvas = document.getElementById('FischerPiecesWhite');
+                var context = canvas.getContext("2d");
+            }
+            else {
+                var canvas = document.getElementById('FischerPiecesBlack');
+                var context = canvas.getContext("2d");
+            }
+
+            if(takenPiece == "none") return;
+
+            if(takenPiece == "pawn") {
+                if(takenPieceTeam == "white") {
+
+                    takenPawnWhite = new Image;
+                    takenPawnWhite.src = "pieces/whitePawn.png";
+                    takenPawnWhite.onload = function() {
+                        context.drawImage(takenPawnWhite,whitePiecesTaken*40 - 40,0,40,40);
+                    }
+                    whitePiecesTaken++;
+
+                }
+                if(takenPieceTeam == "black") {
+
+                    takenPawnBlack = new Image;
+                    takenPawnBlack.src = "pieces/blackPawn.png";
+                    takenPawnBlack.onload = function() {
+                        context.drawImage(takenPawnBlack,blackPiecesTaken*40 - 40,24,40,40);
+                    }
+                    blackPiecesTaken++;
+                }
+            }
+            if(takenPiece == "king") {
+                if(takenPieceTeam == "white") {
+
+                    takenKingWhite = new Image;
+                    takenKingWhite.src = "pieces/whiteKing.png";
+                    takenKingWhite.onload = function() {
+                        context.drawImage(takenKingWhite,whitePiecesTaken*40 - 40,0,40,40);
+                    }
+                    whitePiecesTaken++;
+
+                }
+                if(takenPieceTeam == "black") {
+
+                    takenKingBlack = new Image;
+                    takenKingBlack.src = "pieces/blackKing.png";
+                    takenKingBlack.onload = function() {
+                        context.drawImage(takenKingBlack,blackPiecesTaken*40 - 40,24,40,40);
+                    }
+                    blackPiecesTaken++;
+                }
+            }
+            if(takenPiece == "rook") {
+                if(takenPieceTeam == "white") {
+
+                    takenRookWhite = new Image;
+                    takenRookWhite.src = "pieces/whiteRook.png";
+                    takenRookWhite.onload = function() {
+                        context.drawImage(takenRookWhite,whitePiecesTaken*40 - 40,0,40,40);
+                    }
+                    whitePiecesTaken++;
+
+                }
+                if(takenPieceTeam == "black") {
+
+                    takenRookBlack = new Image;
+                    takenRookBlack.src = "pieces/blackRook.png";
+                    takenRookBlack.onload = function() {
+                        context.drawImage(takenRookBlack,blackPiecesTaken*40 - 40,24,40,40);
+                    }
+                    blackPiecesTaken++;
+                }
+            }
+            if(takenPiece == "bishop") {
+                if(takenPieceTeam == "white") {
+
+                    takenBishopWhite = new Image;
+                    takenBishopWhite.src = "pieces/whiteBishop.png";
+                    takenBishopWhite.onload = function() {
+                        context.drawImage(takenBishopWhite,whitePiecesTaken*40 - 40,0,40,40);
+                    }
+                    whitePiecesTaken++;
+
+                }
+                if(takenPieceTeam == "black") {
+
+                    takenBishopBlack = new Image;
+                    takenBishopBlack.src = "pieces/blackBishop.png";
+                    takenBishopBlack.onload = function() {
+                        context.drawImage(takenBishopBlack,blackPiecesTaken*40 - 40,24,40,40);
+                    }
+                    blackPiecesTaken++;
+                }
+            }
+            if(takenPiece == "knight") {
+                if(takenPieceTeam == "white") {
+
+                    takenKnightWhite = new Image;
+                    takenKnightWhite.src = "pieces/whiteKnight.png";
+                    takenKnightWhite.onload = function() {
+                        context.drawImage(takenKnightWhite,whitePiecesTaken*40 - 40,0,40,40);
+                    }
+                    whitePiecesTaken++;
+
+                }
+                if(takenPieceTeam == "black") {
+
+                    takenKnightBlack = new Image;
+                    takenKnightBlack.src = "pieces/blackKnight.png";
+                    takenKnightBlack.onload = function() {
+                        context.drawImage(takenKnightBlack,blackPiecesTaken*40 - 40,24,40,40);
+                    }
+                    blackPiecesTaken++;
+                }
+            }
+            if(takenPiece == "queen") {
+                if(takenPieceTeam == "white") {
+
+                    takenQueenWhite = new Image;
+                    takenQueenWhite.src = "pieces/whiteQueen.png";
+                    takenQueenWhite.onload = function() {
+                        context.drawImage(takenQueenWhite,whitePiecesTaken*40 - 40,0,40,40);
+                    }
+                    whitePiecesTaken++;
+
+                }
+                if(takenPieceTeam == "black") {
+
+                    takenQueenBlack = new Image;
+                    takenQueenBlack.src = "pieces/blackQueen.png";
+                    takenQueenBlack.onload = function() {
+                        context.drawImage(takenQueenBlack,blackPiecesTaken*40 - 40,24,40,40);
+                    }
+                    blackPiecesTaken++;
+                }
+            }
+
+        }
+
+                //used for hypothetical boards
+                function moveHypothetical(piece, fromLoc, toLoc) {
+
+                    //var newBoard = board;
+                    newBoard = structuredClone(board);
+
+
+
+                    if(newBoard[fromLoc].piece == "pawn") {
+
+                        var fromX = getX(fromLoc);
+                        var fromY = getY(fromLoc);
+                        var toX = getX(toLoc);
+                        var toY = getY(toLoc);
+
+                        var turnDone = false;
+
+                        if(enPassant) {
+                            //check for left move
+                            if(fromX-toX==1) {
+                                newBoard[getIndex(fromX-1,fromY)].piece = "none";
+                                newBoard[getIndex(fromX-1,fromY)].team = "none";
+
+                                newBoard[toLoc].piece = newBoard[fromLoc].piece;
+                                newBoard[toLoc].team = newBoard[fromLoc].team;
+
+                                newBoard[fromLoc].piece = "none";
+                                newBoard[fromLoc].team = "none";
+                            }
+                            //check for right move
+                            if(fromX-toX==-1) {
+                                newBoard[getIndex(fromX+1,fromY)].piece = "none";
+                                newBoard[getIndex(fromX+1,fromY)].team = "none";
+
+                                newBoard[toLoc].piece = newBoard[fromLoc].piece;
+                                newBoard[toLoc].team = newBoard[fromLoc].team;
+
+                                newBoard[fromLoc].piece = "none";
+                                newBoard[fromLoc].team = "none";
+                            }
+                        }
+                        else {
+                            newBoard[toLoc].piece = newBoard[fromLoc].piece;
+                            newBoard[toLoc].team = newBoard[fromLoc].team;
+
+                            newBoard[fromLoc].piece = "none";
+                            newBoard[fromLoc].team = "none";
+                        }
+                    }
+                    else if(newBoard[fromLoc].piece == "pawnTwice") {
+                        enPassant = true;
+
+                        newBoard[toLoc].piece = newBoard[fromLoc].piece;
+                        newBoard[toLoc].team = newBoard[fromLoc].team;
+
+                        newBoard[fromLoc].piece = "none";
+                        newBoard[fromLoc].team = "none";
+                    }
+                    else {
+                        enPassant = false;
+
+                        newBoard[toLoc].piece = newBoard[fromLoc].piece;
+                        newBoard[toLoc].team = newBoard[fromLoc].team;
+
+                        newBoard[fromLoc].piece = "none";
+                        newBoard[fromLoc].team = "none";
+                        if(newBoard[fromLoc].piece == "castleRook") {
+                            return;
+                        }
+                    }
+                    //promotion
+                    if(newBoard[fromLoc].piece == "promote") {
+                        newBoard[toLoc].piece = "queen";
+                        if(turn % 2 == 0) newBoard[toLoc].team = "white";
+                        else newBoard[toLoc].team = "black";
+                        newBoard[fromLoc].piece = "none";
+                        newBoard[fromLoc].team = "none";
+                    }
+
+                    return newBoard;
+
+                }
+
+        //if move is valid, continues to function move()
+        function isValidMove(fromLoc, toLoc) {
+            //change return boolean to a variable called "isValid = false;" then return it at the end
+
+            //initialize vars
+            var fromX = getX(fromLoc);
+            var fromY = getY(fromLoc);
+            var toX = getX(toLoc);
+            var toY = getY(toLoc);
+
+            //game logic
+            if(fromLoc == toLoc) return false;
+
+            //promotion
+            if(getY(fromLoc) == 1 && getY(toLoc) == 0 && board[fromLoc].piece == "pawn") {
+                move("promote", from, to);
+                return true;
+            }
+            if(getY(fromLoc) == 6 && getY(toLoc) == 7 && board[fromLoc].piece == "pawn") {
+                move("promote", from, to);
+                return true;
+            }
+            //castling
+            if(board[fromLoc].piece == "king" && board[fromLoc].team == "white" && whiteKingMoved == false) {
+                if(toLoc == 58 && a1RookMoved == false) {
+                    move("castleRook", 56, 59);
+                    move("castleKing", 60, 58);
+                    return true;
+                }
+                if(toLoc == 62 && h1RookMoved == false) {
+                    move("castleRook", 63, 61);
+                    move("castleKing", 60, 62);
+                    return true;
+                }
+            }
+            if(board[fromLoc].piece == "king" && board[fromLoc].team == "black" && blackKingMoved == false) {
+                if(toLoc == 2 && a8RookMoved == false) {
+                    move("castleRook", 0, 3);
+                    move("castleKing", 4, 2);
+                    return true;
+                }
+                if(toLoc == 6 && h8RookMoved == false) {
+                    move("castleRook", 7, 5);
+                    move("castleKing", 4, 6);
+                    return true;
+                }
+            }
+            
+            //white pawn
+            else if(board[fromLoc].piece == "pawn" && board[fromLoc].team == "white") {
+     
+                if(board[toLoc].piece == "none" && enPassant == true) {
+                    //check if piece to the left is the en passant piece
+                    if(enPasPiece == getIndex(fromX-1, fromY) && fromX==toX+1 && fromY==toY+1) {
+                        move("pawn", fromLoc, toLoc);
+                        return true;
+                    }
+                    if(enPasPiece == getIndex(fromX+1, fromY) && fromX==toX-1 && fromY==toY+1) {
+                        move("pawn", fromLoc, toLoc);
+                        return true;
+                    }
+                }
+                if((board[toLoc].piece == "none") && (fromY == 6 && toY == 4) && (fromX == toX)) {
+                    enPassant = true;
+                    enPasPiece = to;
+                    move("pawnTwice", fromLoc, toLoc);
+                    return true;
+                }
+                if(board[toLoc].piece == "none" && (fromY-toY == 1) && (fromX == toX)) {
+                    enPassant = false;
+                    move("pawn", fromLoc, toLoc);
+                    return true;
+                }
+                if(board[toLoc].piece != "none" && board[toLoc].team == "black" && (toX == fromX-1 || toX == fromX+1) && toY == fromY-1) {
+                    enPassant = false;
+                    move("pawn", fromLoc, toLoc);
+                    return true;
+                }
+            }
+
+            //black pawn
+            else if(board[fromLoc].piece == "pawn" && board[fromLoc].team == "black") {
+                if(board[toLoc].piece == "none" && enPassant == true) {
+                    //check if piece to the left is the en passant piece
+                    if(enPasPiece == getIndex(fromX-1, fromY) && fromX==toX+1 && fromY==toY-1) {
+                        move("pawn", fromLoc, toLoc);
+                        return true;
+                    }
+                    if(enPasPiece == getIndex(fromX+1, fromY) && fromX==toX-1 && fromY==toY-1) {
+                        move("pawn", fromLoc, toLoc);
+                        return true;
+                    }
+                }
+                if((board[toLoc].piece == "none") && (fromY == 1 && toY == 3) && (fromX == toX)) {
+                    enPassant = true;
+                    enPasPiece = toLoc;
+                    move("pawnTwice", fromLoc, toLoc);
+                    return true;
+                }
+                if(board[toLoc].piece == "none" && (fromY-toY == -1) && (fromX == toX)) {
+                    enPassant = false;
+                    move("pawn", fromLoc, toLoc);
+                    return true;
+                }
+                if(board[toLoc].piece != "none" && board[toLoc].team == "white" && (toX == fromX-1 || toX == fromX+1) && toY == fromY+1) {
+                    enPassant = false;
+                    move("pawn", fromLoc, toLoc);
+                    return true;
+                }
+            }
+
+            //king
+            if(board[fromLoc].piece == "king") {
+                if( board[fromLoc].team != board[toLoc].team && ((toX == fromX-1) || (toX == fromX+1) || (toX == fromX)) && ((toY == fromY-1) || (toY == fromY+1) || (toY == fromY)) ) {
+                    move("king", fromLoc, toLoc);
+                    return true;
+                }
+            }
+
+            //knight
+            else if(board[fromLoc].piece == "knight") {
+                if(board[fromLoc].team != board[toLoc].team) {
+                    if( (fromX == toX+1 || fromX == toX-1) && (fromY == toY+2 || fromY == toY-2) ) {
+                        move("knight", fromLoc, toLoc);
+                        return true;
+                    }
+                    if( (fromX == toX+2 || fromX == toX-2) && (fromY == toY+1 || fromY == toY-1) ) {
+                        move("knight", fromLoc, toLoc);
+                        return true;
+                    }
+                }
+            }
+
+            //bishop
+            else if(board[fromLoc].piece == "bishop") {
+                if(board[fromLoc].team != board[toLoc].team) {
+
+                    var distanceX = toX - fromX;
+                    var distanceY = toY - fromY;
+
+                    //direction
+                    var direction = "none";
+                    //if distanceX is negative and distanceY is negative then TOPLEFT
+                    if(distanceX < 0 && distanceY < 0) direction = "upleft";
+                    //if distanceX is negative and distanceY is positive then BOTLEFT
+                    if(distanceX < 0 && distanceY > 0) direction = "downleft";
+                    //if distanceX is positive and distanceY is positive then BOTRIGHT
+                    if(distanceX > 0 && distanceY > 0) direction = "downright";
+                    //if distanceX is positive and distanceY is negative then TOPRIGHT
+                    if(distanceX > 0 && distanceY < 0) direction = "upright";
+
+                    if(Math.abs(distanceX) == Math.abs(distanceY)) {
+                        var piecesBetween = 0;
+                        for(var i=1; i < Math.abs(distanceX); i++) {
+                            if(direction == "upleft") {
+                                if(board[getIndex(fromX-i, fromY-i)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+
+                            if(direction == "downleft") {
+                                if(board[getIndex(fromX-i, fromY+i)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+
+                            if(direction == "downright") {
+                                if(board[getIndex(fromX+i, fromY+i)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+                            if(direction == "upright") {
+                                if(board[getIndex(fromX+i, fromY-i)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+                        }
+                        if(piecesBetween == 0) {
+                            move("bishop", fromLoc, toLoc);
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            //queen
+            else if(board[fromLoc].piece == "queen") {
+                if(board[fromLoc].team != board[toLoc].team) {
+                    //checks for a diagonal move
+                    if(fromX != toX && fromY != toY) {
+
+                        var distanceX = toX - fromX;
+                        var distanceY = toY - fromY;
+
+                        //direction
+                        var direction = "none";
+                        //if distanceX is negative and distanceY is negative then TOPLEFT
+                        if(distanceX < 0 && distanceY < 0) direction = "upleft";
+                        //if distanceX is negative and distanceY is positive then BOTLEFT
+                        if(distanceX < 0 && distanceY > 0) direction = "downleft";
+                        //if distanceX is positive and distanceY is positive then BOTRIGHT
+                        if(distanceX > 0 && distanceY > 0) direction = "downright";
+                        //if distanceX is positive and distanceY is negative then TOPRIGHT
+                        if(distanceX > 0 && distanceY < 0) direction = "upright";
+
+                        if(Math.abs(distanceX) == Math.abs(distanceY)) {
+                            var piecesBetween = 0;
+                            for(var i=1; i < Math.abs(distanceX); i++) {
+                                if(direction == "upleft") {
+                                    if(board[getIndex(fromX-i, fromY-i)].piece == "none") piecesBetween += 0;
+                                    else piecesBetween += 1;
+                                }
+                                if(direction == "downleft") {
+                                    if(board[getIndex(fromX-i, fromY+i)].piece == "none") piecesBetween += 0;
+                                    else piecesBetween += 1;
+                                }
+                                if(direction == "downright") {
+                                    if(board[getIndex(fromX+i, fromY+i)].piece == "none") piecesBetween += 0;
+                                    else piecesBetween += 1;
+                                }
+                                if(direction == "upright") {
+                                    if(board[getIndex(fromX+i, fromY-i)].piece == "none") piecesBetween += 0;
+                                    else piecesBetween += 1;
+                                }
+                            }
+                            if(piecesBetween == 0) {
+                                move("queen", fromLoc, toLoc);
+                                return true;
+                            }
+                        }
+                    }
+
+                    //checks for a straight move
+                    else {
+                        var distanceX = toX - fromX;
+                        var distanceY = toY - fromY;
+
+                        //direction
+                        var direction = "none";
+                        //if distanceX is 0 and distanceY is negative then UP
+                        if(distanceX == 0 && distanceY < 0) direction = "up";
+                        //if distanceX is 0 and distanceY is positive then down
+                        if(distanceX == 0 && distanceY > 0) direction = "down";
+                        //if distanceX is positive and distanceY is 0 then right
+                        if(distanceX > 0 && distanceY == 0) direction = "right";
+                        //if distanceX is negative and distanceY is 0 then left
+                        if(distanceX < 0 && distanceY == 0) direction = "left";
+                    }
+
+                    if(distanceX == 0) {
+                        var piecesBetween = 0;
+                        for(var i=1; i < Math.abs(distanceY); i++) {
+                            if(direction == "up") {
+                                if(board[getIndex(fromX, fromY-i)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+
+                            if(direction == "down") {
+                                if(board[getIndex(fromX, fromY+i)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+                        }
+                        if(piecesBetween == 0) {
+                            move("queen", fromLoc, toLoc);
+                            return true;
+                        }
+                    }
+
+                    if(distanceY == 0) {
+                        var piecesBetween = 0;
+                        for(var i=1; i < Math.abs(distanceX); i++) {
+                            if(direction == "right") {
+                                if(board[getIndex(fromX+i, fromY)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+
+                            if(direction == "left") {
+                                if(board[getIndex(fromX-i, fromY)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+                        }
+                        if(piecesBetween == 0) {
+                            move("queen", fromLoc, toLoc);
+                            return true;
+                        }
+                    }    
+                } 
+            } //end check for queen
+
+            //rook
+            else if(board[fromLoc].piece == "rook") {
+                if(board[fromLoc].team != board[toLoc].team) {
+                    if(fromX == toX || fromY == fromY) {
+                        var distanceX = toX - fromX;
+                        var distanceY = toY - fromY;
+
+                        //direction
+                        var direction = "none";
+                        //if distanceX is 0 and distanceY is negative then UP
+                        if(distanceX == 0 && distanceY < 0) {
+                            direction = "up";
+                        }
+                        //if distanceX is 0 and distanceY is positive then down
+                        if(distanceX == 0 && distanceY > 0) {
+                            direction = "down";
+                        }
+                        //if distanceX is positive and distanceY is 0 then right
+                        if(distanceX > 0 && distanceY == 0) {
+                            direction = "right";
+                        }
+                        //if distanceX is negative and distanceY is 0 then left
+                        if(distanceX < 0 && distanceY == 0) {
+                            direction = "left";
+                        }
+                    }
+
+                    if(distanceX == 0) {
+                        var piecesBetween = 0;
+                        for(var i=1; i < Math.abs(distanceY); i++) {
+                            if(direction == "up") {
+                                if(board[getIndex(fromX, fromY-i)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+
+                            if(direction == "down") {
+                                if(board[getIndex(fromX, fromY+i)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+                        }
+                        if(piecesBetween == 0) {
+                            move("rook", fromLoc, toLoc);
+                            return true;
+                        }
+                    }
+
+                    if(distanceY == 0) {
+                        var piecesBetween = 0;
+                        for(var i=1; i < Math.abs(distanceX); i++) {
+                            if(direction == "right") {
+                                if(board[getIndex(fromX+i, fromY)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+
+                            if(direction == "left") {
+                                if(board[getIndex(fromX-i, fromY)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+                        }
+                        if(piecesBetween == 0) {
+                            move("rook", fromLoc, toLoc);
+                            return true;
+                        }
+                    }
+                    
+                } 
+            } //end of rook check
+            from = -1;
+            to = -1;
+            return false;
+
+        } //end isValidMove
+
+
+        //if move is valid, continues to function move()
+        function isValidBoard(fromLoc, toLoc) {
+
+            var tempBoard = structuredClone(board);
+            //initialize vars
+            var fromX = getX(fromLoc);
+            var fromY = getY(fromLoc);
+            var toX = getX(toLoc);
+            var toY = getY(toLoc);
+
+            //game logic
+            if(fromLoc == toLoc) return tempBoard;
+
+            //promotion
+            if(getY(fromLoc) == 1 && getY(toLoc) == 0 && board[fromLoc].piece == "pawn") {
+                var tempBoard = moveHypothetical("promote", fromLoc, toLoc);
+                return tempBoard;
+            }
+            if(getY(fromLoc) == 6 && getY(toLoc) == 7 && board[fromLoc].piece == "pawn") {
+                var tempBoard = moveHypothetical("promote", fromLoc, toLoc);
+                return tempBoard;
+            }
+            //castling
+            if(board[fromLoc].piece == "king" && board[fromLoc].team == "white" && whiteKingMoved == false) {
+                if(toLoc == 58 && a1RookMoved == false) {
+                    var tempBoard = moveHypothetical("castleRook", 56, 59);
+                    tempBoard = moveHypothetical("castleKing", 60, 58);
+                    return tempBoard;
+                }
+                if(toLoc == 62 && h1RookMoved == false) {
+                    var tempBoard = moveHypothetical("castleRook", 63, 61);
+                    tempBoard = moveHypothetical("castleKing", 60, 62);
+                    return tempBoard;
+                }
+            }
+            if(board[fromLoc].piece == "king" && board[fromLoc].team == "black" && blackKingMoved == false) {
+                if(toLoc == 2 && a8RookMoved == false) {
+                    var tempBoard = moveHypothetical("castleRook", 0, 3);
+                    tempBoard = moveHypothetical("castleKing", 4, 2);
+                    return tempBoard;
+                }
+                if(toLoc == 6 && h8RookMoved == false) {
+                    var tempBoard = moveHypothetical("castleRook", 7, 5);
+                    tempBoard = moveHypothetical("castleKing", 4, 6);
+                    return tempBoard;
+                }
+            }
+
+            //white pawn
+            else if(board[fromLoc].piece == "pawn" && board[fromLoc].team == "white") {
+
+                if(board[toLoc].piece == "none" && enPassant == true) {
+                    //check if piece to the left is the en passant piece
+                    if(enPasPiece == getIndex(fromX-1, fromY) && fromX==toX+1 && fromY==toY+1) {
+                        var tempBoard = moveHypothetical("pawn", fromLoc, toLoc);
+                        return tempBoard;
+                    }
+                    if(enPasPiece == getIndex(fromX+1, fromY) && fromX==toX-1 && fromY==toY+1) {
+                        var tempBoard = moveHypothetical("pawn", fromLoc, toLoc);
+                        return tempBoard;
+                    }
+                }
+                if((board[toLoc].piece == "none") && (fromY == 6 && toY == 4) && (fromX == toX)) {
+                    enPassant = true;
+                    enPasPiece = toLoc;
+                    var tempBoard = moveHypothetical("pawnTwice", fromLoc, toLoc);
+                    return tempBoard;
+                }
+                if(board[toLoc].piece == "none" && (fromY-toY == 1) && (fromX == toX)) {
+                    enPassant = false;
+                    var tempBoard = moveHypothetical("pawn", fromLoc, toLoc);
+                    return tempBoard;
+                }
+                if(board[toLoc].piece != "none" && board[toLoc].team == "black" && (toX == fromX-1 || toX == fromX+1) && toY == fromY-1) {
+                    enPassant = false;
+                    var tempBoard = moveHypothetical("pawn", fromLoc, toLoc);
+                    return tempBoard;
+                }
+            }
+
+            //black pawn
+            else if(board[fromLoc].piece == "pawn" && board[fromLoc].team == "black") {
+                if(board[toLoc].piece == "none" && enPassant == true) {
+                    //check if piece to the left is the en passant piece
+                    if(enPasPiece == getIndex(fromX-1, fromY) && fromX==toX+1 && fromY==toY-1) {
+                    var tempBoard = moveHypothetical("pawn", fromLoc, toLoc);
+                    return tempBoard;
+                    }
+                    if(enPasPiece == getIndex(fromX+1, fromY) && fromX==toX-1 && fromY==toY-1) {
+                        var tempBoard = moveHypothetical("pawn", fromLoc, toLoc);
+                        return tempBoard;
+                    }
+                }
+                if((board[toLoc].piece == "none") && (fromY == 1 && toY == 3) && (fromX == toX)) {
+                    enPassant = true;
+                    enPasPiece = toLoc;
+                    var tempBoard = moveHypothetical("pawnTwice", fromLoc, toLoc);
+                    return tempBoard;
+                }
+                if(board[toLoc].piece == "none" && (fromY-toY == -1) && (fromX == toX)) {
+                    enPassant = false;
+                    var tempBoard = moveHypothetical("pawn", fromLoc, toLoc);
+                    return tempBoard;
+                }
+                if(board[toLoc].piece != "none" && board[toLoc].team == "white" && (toX == fromX-1 || toX == fromX+1) && toY == fromY+1) {
+                    enPassant = false;
+                    var tempBoard = moveHypothetical("pawn", fromLoc, toLoc);
+                    return tempBoard;
+                }
+            }
+
+            //king
+            if(board[fromLoc].piece == "king") {
+                if( board[fromLoc].team != board[toLoc].team && ((toX == fromX-1) || (toX == fromX+1) || (toX == fromX)) && ((toY == fromY-1) || (toY == fromY+1) || (toY == fromY)) ) {
+                    var tempBoard = moveHypothetical("king", fromLoc, toLoc);
+                    return tempBoard;
+                }
+            }
+
+            //knight
+            else if(board[fromLoc].piece == "knight") {
+                if(board[fromLoc].team != board[toLoc].team) {
+                    if( (fromX == toX+1 || fromX == toX-1) && (fromY == toY+2 || fromY == toY-2) ) {
+                        var tempBoard = moveHypothetical("knight", fromLoc, toLoc);
+                        return tempBoard;
+                    }
+                    if( (fromX == toX+2 || fromX == toX-2) && (fromY == toY+1 || fromY == toY-1) ) {
+                        var tempBoard = moveHypothetical("knight", fromLoc, toLoc);
+                        return tempBoard;
+                    }
+                }
+            }
+
+            //bishop
+            else if(board[fromLoc].piece == "bishop") {
+                if(board[fromLoc].team != board[toLoc].team) {
+
+                    var distanceX = toX - fromX;
+                    var distanceY = toY - fromY;
+
+                    //direction
+                    var direction = "none";
+                    //if distanceX is negative and distanceY is negative then TOPLEFT
+                    if(distanceX < 0 && distanceY < 0) direction = "upleft";
+                    //if distanceX is negative and distanceY is positive then BOTLEFT
+                    if(distanceX < 0 && distanceY > 0) direction = "downleft";
+                    //if distanceX is positive and distanceY is positive then BOTRIGHT
+                    if(distanceX > 0 && distanceY > 0) direction = "downright";
+                    //if distanceX is positive and distanceY is negative then TOPRIGHT
+                    if(distanceX > 0 && distanceY < 0) direction = "upright";
+
+                    if(Math.abs(distanceX) == Math.abs(distanceY)) {
+                        var piecesBetween = 0;
+                        for(var i=1; i < Math.abs(distanceX); i++) {
+                            if(direction == "upleft") {
+                                if(board[getIndex(fromX-i, fromY-i)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+
+                            if(direction == "downleft") {
+                                if(board[getIndex(fromX-i, fromY+i)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+
+                            if(direction == "downright") {
+                                if(board[getIndex(fromX+i, fromY+i)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+                            if(direction == "upright") {
+                                if(board[getIndex(fromX+i, fromY-i)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+                        }
+                        if(piecesBetween == 0) {
+                            var tempBoard = moveHypothetical("bishop", fromLoc, toLoc);
+                            return tempBoard;
+                        }
+                    }
+                }
+            }
+
+            //queen
+            else if(board[fromLoc].piece == "queen") {
+                if(board[fromLoc].team != board[toLoc].team) {
+                    //checks for a diagonal move
+                    if(fromX != toX && fromY != toY) {
+
+                        var distanceX = toX - fromX;
+                        var distanceY = toY - fromY;
+
+                        //direction
+                        var direction = "none";
+                        //if distanceX is negative and distanceY is negative then TOPLEFT
+                        if(distanceX < 0 && distanceY < 0) direction = "upleft";
+                        //if distanceX is negative and distanceY is positive then BOTLEFT
+                        if(distanceX < 0 && distanceY > 0) direction = "downleft";
+                        //if distanceX is positive and distanceY is positive then BOTRIGHT
+                        if(distanceX > 0 && distanceY > 0) direction = "downright";
+                        //if distanceX is positive and distanceY is negative then TOPRIGHT
+                        if(distanceX > 0 && distanceY < 0) direction = "upright";
+
+                        if(Math.abs(distanceX) == Math.abs(distanceY)) {
+                            var piecesBetween = 0;
+                            for(var i=1; i < Math.abs(distanceX); i++) {
+                                if(direction == "upleft") {
+                                    if(board[getIndex(fromX-i, fromY-i)].piece == "none") piecesBetween += 0;
+                                    else piecesBetween += 1;
+                                }
+                                if(direction == "downleft") {
+                                    if(board[getIndex(fromX-i, fromY+i)].piece == "none") piecesBetween += 0;
+                                    else piecesBetween += 1;
+                                }
+                                if(direction == "downright") {
+                                    if(board[getIndex(fromX+i, fromY+i)].piece == "none") piecesBetween += 0;
+                                    else piecesBetween += 1;
+                                }
+                                if(direction == "upright") {
+                                    if(board[getIndex(fromX+i, fromY-i)].piece == "none") piecesBetween += 0;
+                                    else piecesBetween += 1;
+                                }
+                            }
+                            if(piecesBetween == 0) {
+                                var tempBoard = moveHypothetical("queen", fromLoc, toLoc);
+                                return tempBoard;
+                            }
+                        }
+                    }
+
+                    //checks for a straight move
+                    else {
+                        var distanceX = toX - fromX;
+                        var distanceY = toY - fromY;
+
+                        //direction
+                        var direction = "none";
+                        //if distanceX is 0 and distanceY is negative then UP
+                        if(distanceX == 0 && distanceY < 0) direction = "up";
+                        //if distanceX is 0 and distanceY is positive then down
+                        if(distanceX == 0 && distanceY > 0) direction = "down";
+                        //if distanceX is positive and distanceY is 0 then right
+                        if(distanceX > 0 && distanceY == 0) direction = "right";
+                        //if distanceX is negative and distanceY is 0 then left
+                        if(distanceX < 0 && distanceY == 0) direction = "left";
+                    }
+
+                    if(distanceX == 0) {
+                        var piecesBetween = 0;
+                        for(var i=1; i < Math.abs(distanceY); i++) {
+                            if(direction == "up") {
+                                if(board[getIndex(fromX, fromY-i)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+
+                            if(direction == "down") {
+                                if(board[getIndex(fromX, fromY+i)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+                        }
+                        if(piecesBetween == 0) {
+                            var tempBoard = moveHypothetical("queen", fromLoc, toLoc);
+                            return tempBoard;
+                        }
+                    }
+
+                    if(distanceY == 0) {
+                        var piecesBetween = 0;
+                        for(var i=1; i < Math.abs(distanceX); i++) {
+                            if(direction == "right") {
+                                if(board[getIndex(fromX+i, fromY)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+
+                            if(direction == "left") {
+                                if(board[getIndex(fromX-i, fromY)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+                        }
+                        if(piecesBetween == 0) {
+                            var tempBoard = moveHypothetical("queen", fromLoc, toLoc);
+                            return tempBoard;
+                        }
+                    }    
+                } 
+            } //end check for queen
+
+            //rook
+            else if(board[fromLoc].piece == "rook") {
+                if(board[fromLoc].team != board[toLoc].team) {
+                    if(fromX == toX || fromY == fromY) {
+                        var distanceX = toX - fromX;
+                        var distanceY = toY - fromY;
+
+                        //direction
+                        var direction = "none";
+                        //if distanceX is 0 and distanceY is negative then UP
+                        if(distanceX == 0 && distanceY < 0) {
+                            direction = "up";
+                        }
+                        //if distanceX is 0 and distanceY is positive then down
+                        if(distanceX == 0 && distanceY > 0) {
+                            direction = "down";
+                        }
+                        //if distanceX is positive and distanceY is 0 then right
+                        if(distanceX > 0 && distanceY == 0) {
+                            direction = "right";
+                        }
+                        //if distanceX is negative and distanceY is 0 then left
+                        if(distanceX < 0 && distanceY == 0) {
+                            direction = "left";
+                        }
+                    }
+
+                    if(distanceX == 0) {
+                        var piecesBetween = 0;
+                        for(var i=1; i < Math.abs(distanceY); i++) {
+                            if(direction == "up") {
+                                if(board[getIndex(fromX, fromY-i)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+
+                            if(direction == "down") {
+                                if(board[getIndex(fromX, fromY+i)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+                        }
+                        if(piecesBetween == 0) {
+                            var tempBoard = moveHypothetical("rook", fromLoc, toLoc);
+                            return tempBoard;
+                        }
+                    }
+
+                    if(distanceY == 0) {
+                        var piecesBetween = 0;
+                        for(var i=1; i < Math.abs(distanceX); i++) {
+                            if(direction == "right") {
+                                if(board[getIndex(fromX+i, fromY)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+
+                            if(direction == "left") {
+                                //alert(fromX + "(fromX) " + fromY + "(fromY) " + i + "(i)")
+                                if(board[getIndex(fromX-i, fromY)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+                        }
+                        if(piecesBetween == 0) {
+                            var tempBoard = moveHypothetical("rook", fromLoc, toLoc);
+                            return tempBoard;
+                        }
+                    }
+                    
+                } 
+            } //end of rook check
+            return tempBoard;
+
+        } //end isValidBoard
+
+        //if move is valid, continues to function move()
+        function isValidMoveBool(fromLoc, toLoc) {
+            //change return boolean to a variable called "isValid = false;" then return it at the end
+
+            //initialize vars
+            var fromX = getX(fromLoc);
+            var fromY = getY(fromLoc);
+            var toX = getX(toLoc);
+            var toY = getY(toLoc);
+
+            //game logic
+            if(board[fromLoc].team == "white") return false;
+            if(fromLoc == toLoc) return false;
+
+            //promotion
+            if(getY(fromLoc) == 1 && getY(toLoc) == 0 && board[fromLoc].piece == "pawn" && board[fromLoc].team == "white") {
+                return true;
+            }
+            if(getY(fromLoc) == 6 && getY(toLoc) == 7 && board[fromLoc].piece == "pawn" && board[fromLoc].team == "black") {
+                return true;
+            }
+            //castling
+            if(board[fromLoc].piece == "king" && board[fromLoc].team == "white" && whiteKingMoved == false) {
+                if(toLoc == 58 && a1RookMoved == false) {
+                    return true;
+                }
+                if(toLoc == 62 && h1RookMoved == false) {
+
+                    return true;
+                }
+            }
+            if(board[fromLoc].piece == "king" && board[fromLoc].team == "black" && blackKingMoved == false) {
+                if(toLoc == 2 && a8RookMoved == false) {
+
+                    return true;
+                }
+                if(toLoc == 6 && h8RookMoved == false) {
+                    return true;
+                }
+            }
+            
+            //white pawn
+            else if(board[fromLoc].piece == "pawn" && board[fromLoc].team == "white") {
+     
+                if(board[toLoc].piece == "none" && enPassant == true) {
+                    //check if piece to the left is the en passant piece
+                    if(enPasPiece == getIndex(fromX-1, fromY) && fromX==toX+1 && fromY==toY+1) {
+
+                        return true;
+                    }
+                    if(enPasPiece == getIndex(fromX+1, fromY) && fromX==toX-1 && fromY==toY+1) {
+                        return true;
+                    }
+                }
+                if((board[toLoc].piece == "none") && (fromY == 6 && toY == 4) && (fromX == toX)) {
+                    enPassant = true;
+                    enPasPiece = to;
+                    return true;
+                }
+                if(board[toLoc].piece == "none" && (fromY-toY == 1) && (fromX == toX)) {
+                    enPassant = false;
+                    return true;
+                }
+                if(board[toLoc].piece != "none" && board[toLoc].team == "black" && (toX == fromX-1 || toX == fromX+1) && toY == fromY-1) {
+                    enPassant = false;
+                    return true;
+                }
+            }
+
+            //black pawn
+            else if(board[fromLoc].piece == "pawn" && board[fromLoc].team == "black") {
+                if(board[toLoc].piece == "none" && enPassant == true) {
+                    //check if piece to the left is the en passant piece
+                    if(enPasPiece == getIndex(fromX-1, fromY) && fromX==toX+1 && fromY==toY-1) {
+                        return true;
+                    }
+                    if(enPasPiece == getIndex(fromX+1, fromY) && fromX==toX-1 && fromY==toY-1) {
+                        return true;
+                    }
+                }
+                if((board[toLoc].piece == "none") && (fromY == 1 && toY == 3) && (fromX == toX)) {
+                    enPassant = true;
+                    enPasPiece = toLoc;
+                    return true;
+                }
+                if(board[toLoc].piece == "none" && (fromY-toY == -1) && (fromX == toX)) {
+                    //alert("pawn move forward one");
+                    enPassant = false;
+                    return true;
+                }
+                if(board[toLoc].piece != "none" && board[toLoc].team == "white" && (toX == fromX-1 || toX == fromX+1) && toY == fromY+1) {
+                    enPassant = false;
+                    return true;
+                }
+            }
+
+            //king
+            if(board[fromLoc].piece == "king") {
+                //alert("king move");
+                if( board[fromLoc].team != board[toLoc].team && ((toX == fromX-1) || (toX == fromX+1) || (toX == fromX)) && ((toY == fromY-1) || (toY == fromY+1) || (toY == fromY)) ) {
+                    return true;
+                }
+            }
+
+            //knight
+            else if(board[fromLoc].piece == "knight") {
+                if(board[fromLoc].team != board[toLoc].team) {
+                    if( (fromX == toX+1 || fromX == toX-1) && (fromY == toY+2 || fromY == toY-2) ) {
+                        return true;
+                    }
+                    if( (fromX == toX+2 || fromX == toX-2) && (fromY == toY+1 || fromY == toY-1) ) {
+                        return true;
+                    }
+                }
+            }
+
+            //bishop
+            else if(board[fromLoc].piece == "bishop") {
+                if(board[fromLoc].team != board[toLoc].team) {
+
+                    var distanceX = toX - fromX;
+                    var distanceY = toY - fromY;
+
+                    //direction
+                    var direction = "none";
+                    //if distanceX is negative and distanceY is negative then TOPLEFT
+                    if(distanceX < 0 && distanceY < 0) direction = "upleft";
+                    //if distanceX is negative and distanceY is positive then BOTLEFT
+                    if(distanceX < 0 && distanceY > 0) direction = "downleft";
+                    //if distanceX is positive and distanceY is positive then BOTRIGHT
+                    if(distanceX > 0 && distanceY > 0) direction = "downright";
+                    //if distanceX is positive and distanceY is negative then TOPRIGHT
+                    if(distanceX > 0 && distanceY < 0) direction = "upright";
+
+                    if(Math.abs(distanceX) == Math.abs(distanceY)) {
+                        var piecesBetween = 0;
+                        for(var i=1; i < Math.abs(distanceX); i++) {
+                            if(direction == "upleft") {
+                                if(board[getIndex(fromX-i, fromY-i)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+
+                            if(direction == "downleft") {
+                                if(board[getIndex(fromX-i, fromY+i)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+
+                            if(direction == "downright") {
+                                if(board[getIndex(fromX+i, fromY+i)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+                            if(direction == "upright") {
+                                if(board[getIndex(fromX+i, fromY-i)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+                        }
+                        if(piecesBetween == 0) {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            //queen
+            else if(board[fromLoc].piece == "queen") {
+                if(board[fromLoc].team != board[toLoc].team) {
+                    //checks for a diagonal move
+                    if(fromX != toX && fromY != toY) {
+
+                        var distanceX = toX - fromX;
+                        var distanceY = toY - fromY;
+
+                        //direction
+                        var direction = "none";
+                        //if distanceX is negative and distanceY is negative then TOPLEFT
+                        if(distanceX < 0 && distanceY < 0) direction = "upleft";
+                        //if distanceX is negative and distanceY is positive then BOTLEFT
+                        if(distanceX < 0 && distanceY > 0) direction = "downleft";
+                        //if distanceX is positive and distanceY is positive then BOTRIGHT
+                        if(distanceX > 0 && distanceY > 0) direction = "downright";
+                        //if distanceX is positive and distanceY is negative then TOPRIGHT
+                        if(distanceX > 0 && distanceY < 0) direction = "upright";
+
+                        if(Math.abs(distanceX) == Math.abs(distanceY)) {
+                            var piecesBetween = 0;
+                            for(var i=1; i < Math.abs(distanceX); i++) {
+                                if(direction == "upleft") {
+                                    if(board[getIndex(fromX-i, fromY-i)].piece == "none") piecesBetween += 0;
+                                    else piecesBetween += 1;
+                                }
+                                if(direction == "downleft") {
+                                    if(board[getIndex(fromX-i, fromY+i)].piece == "none") piecesBetween += 0;
+                                    else piecesBetween += 1;
+                                }
+                                if(direction == "downright") {
+                                    if(board[getIndex(fromX+i, fromY+i)].piece == "none") piecesBetween += 0;
+                                    else piecesBetween += 1;
+                                }
+                                if(direction == "upright") {
+                                    if(board[getIndex(fromX+i, fromY-i)].piece == "none") piecesBetween += 0;
+                                    else piecesBetween += 1;
+                                }
+                            }
+                            if(piecesBetween == 0) {
+                                return true;
+                            }
+                        }
+                    }
+
+                    //checks for a straight move
+                    else {
+                        var distanceX = toX - fromX;
+                        var distanceY = toY - fromY;
+
+                        //direction
+                        var direction = "none";
+                        //if distanceX is 0 and distanceY is negative then UP
+                        if(distanceX == 0 && distanceY < 0) direction = "up";
+                        //if distanceX is 0 and distanceY is positive then down
+                        if(distanceX == 0 && distanceY > 0) direction = "down";
+                        //if distanceX is positive and distanceY is 0 then right
+                        if(distanceX > 0 && distanceY == 0) direction = "right";
+                        //if distanceX is negative and distanceY is 0 then left
+                        if(distanceX < 0 && distanceY == 0) direction = "left";
+                    }
+
+                    if(distanceX == 0) {
+                        var piecesBetween = 0;
+                        for(var i=1; i < Math.abs(distanceY); i++) {
+                            if(direction == "up") {
+                                if(board[getIndex(fromX, fromY-i)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+
+                            if(direction == "down") {
+                                if(board[getIndex(fromX, fromY+i)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+                        }
+                        if(piecesBetween == 0) {
+                            return true;
+                        }
+                    }
+
+                    if(distanceY == 0) {
+                        var piecesBetween = 0;
+                        for(var i=1; i < Math.abs(distanceX); i++) {
+                            if(direction == "right") {
+                                if(board[getIndex(fromX+i, fromY)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+
+                            if(direction == "left") {
+                                if(board[getIndex(fromX-i, fromY)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+                        }
+                        if(piecesBetween == 0) {
+                            return true;
+                        }
+                    }    
+                } 
+            } //end check for queen
+
+            //rook
+            else if(board[fromLoc].piece == "rook") {
+                if(board[fromLoc].team != board[toLoc].team) {
+                    if(fromX == toX || fromY == fromY) {
+                        var distanceX = toX - fromX;
+                        var distanceY = toY - fromY;
+
+                        //direction
+                        var direction = "none";
+                        //if distanceX is 0 and distanceY is negative then UP
+                        if(distanceX == 0 && distanceY < 0) {
+                            direction = "up";
+                        }
+                        //if distanceX is 0 and distanceY is positive then down
+                        if(distanceX == 0 && distanceY > 0) {
+                            direction = "down";
+                        }
+                        //if distanceX is positive and distanceY is 0 then right
+                        if(distanceX > 0 && distanceY == 0) {
+                            direction = "right";
+                        }
+                        //if distanceX is negative and distanceY is 0 then left
+                        if(distanceX < 0 && distanceY == 0) {
+                            direction = "left";
+                        }
+                    }
+
+                    if(distanceX == 0) {
+                        var piecesBetween = 0;
+                        for(var i=1; i < Math.abs(distanceY); i++) {
+                            if(direction == "up") {
+                                if(board[getIndex(fromX, fromY-i)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+
+                            if(direction == "down") {
+                                if(board[getIndex(fromX, fromY+i)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+                        }
+                        if(piecesBetween == 0) {
+                            return true;
+                        }
+                    }
+
+                    if(distanceY == 0) {
+                        var piecesBetween = 0;
+                        for(var i=1; i < Math.abs(distanceX); i++) {
+                            if(direction == "right") {
+                                if(board[getIndex(fromX+i, fromY)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+
+                            if(direction == "left") {
+                                if(board[getIndex(fromX-i, fromY)].piece == "none") piecesBetween += 0;
+                                else piecesBetween += 1;
+                            }
+                        }
+                        if(piecesBetween == 0) {
+                            return true;
+                        }
+                    }
+                    
+                } 
+            } //end of rook check
+            from = -1;
+            to = -1;
+            return false;
+
+        } //end isValidMoveBool
+
+        function switchTurn() {
+            turn = turnCount % 2;
+            return;
+        }
+
+        function highlight(index) {
+
+            //coordinates
+            var x = getX(index);
+            var y = getY(index);
+
+            //get coordinates of cell for canvas
+            var posX = x*size + 2;
+            var posY = y*size + 2;
+
+            var prevHighlight = 0;
+            
+            //for loop to check if any other cell is highlighted, and unhighlight it
+            for(var i=0; i < board.length; i++) {
+                //if yes, unhighlight it
+                if(board[i].highlight == 1) {
+                    prevHighlight = board[i];
+
+                    var thisX = getX(i)*size + 2;
+                    var thisY = getY(i)*size + 2;
+
+                    context.beginPath();
+                    context.lineWidth = "4";
+                    
+                    //determine if dark or light square and remove highlight
+                    if(board[i].squareColor == "light") context.strokeStyle = "beige";
+                    else context.strokeStyle = "burlywood";
+
+                    //remove red border
+                    context.rect(thisX, thisY, 76, 76);
+                    context.stroke();
+                    board[i].highlight = 0;
+                }
+            }
+
+            if((turn == 0 && board[index].team == "white") || (turn == 1 && board[index].team == "black")) {
+                //if unhighlighted, highlight it
+                if(board[getIndex(x,y)].highlight == 0 && board[getIndex(x,y)].piece != "none") {
+                    board[getIndex(x,y)].highlight = 1;
+                    context.beginPath();
+                    context.lineWidth = "4";
+                    context.strokeStyle = "red";
+                    context.rect(posX, posY, 76, 76);
+                    context.stroke();
+                    firstClick = false;
+                    return true;
+                }
+            }
+            else return false;
+        }
+
+        //gets click from board
+        function getClick() {
+            
+            var canvasLeft = canvas.offsetLeft;
+            var canvasTop = canvas.offsetTop;
+
+            //coordinates of x and y minus the offset of the canvas
+            var x = event.pageX - canvasLeft;
+            var y = event.pageY - canvasTop;
+
+            //divide coordinates by space to get an integer value
+            var space = canvas.width/8;
+            var xCoord = Math.floor(x / space);
+            var yCoord = Math.floor(y / space);
+            var index = xCoord + (yCoord * 8);
+
+            clickCheck(index);
+        }
+
+        //checks if click is first or second click
+        function clickCheck(index) {
+            if(highlight(index) == true) {
+                firstClick = false;
+                from = index;
+                return;
+            }
+            else {
+                to = index;
+                isValidMove(from, to);
+                checkWin();
+
+                if(mode == "AI") {
+                    setTimeout(function() { 
+                        botMove(); 
+                    }, 3000);
+                }
+                
+            }
+        }
+
+        //draws the board array
+        function drawBoard() {
+            for(var i=0; i < board.length; i++) drawCell(i);
+        }
+
+        //return X given index
+        function getX(index) {
+            var x = index % 8;
+            return x;
+        }
+
+        //returns y given index
+        function getY(index) {
+            var y = Math.floor(index / 8);
+            return y;
+        }
+
+        //returns index given x and y
+        function getIndex(x,y) {
+            return y*8 + x;
+        }
+
+        //-------------------------------------------------------------------------
+        // Bot Section
+        //-------------------------------------------------------------------------
+
+        var weights = { 'pawn': 100,
+                        'knight': 280,
+                        'bishop': 320,
+                        'rook': 479,
+                        'queen': 929,
+                        'king': 60000};
+        
+        //Piece Square Table for white
+        var pst_w = {
+            'pawn': [
+                [ 100, 100, 100, 100, 105, 100, 100,  100],
+                [  78,  83,  86,  73, 102,  82,  85,  90],
+                [   7,  29,  21,  44,  40,  31,  44,   7],
+                [ -17,  16,  -2,  15,  14,   0,  15, -13],
+                [ -26,   3,  10,   9,   6,   1,   0, -23],
+                [ -22,   9,   5, -11, -10,  -2,   3, -19],
+                [ -31,   8,  -7, -37, -36, -14,   3, -31],
+                [   0,   0,   0,   0,   0,   0,   0,   0]
+            ],
+            'knight': [ 
+                [-66, -53, -75, -75, -10, -55, -58, -70],
+                [ -3,  -6, 100, -36,   4,  62,  -4, -14],
+                [ 10,  67,   1,  74,  73,  27,  62,  -2],
+                [ 24,  24,  45,  37,  33,  41,  25,  17],
+                [ -1,   5,  31,  21,  22,  35,   2,   0],
+                [-18,  10,  13,  22,  18,  15,  11, -14],
+                [-23, -15,   2,   0,   2,   0, -23, -20],
+                [-74, -23, -26, -24, -19, -35, -22, -69]
+            ],
+            'bishop': [ 
+                [-59, -78, -82, -76, -23,-107, -37, -50],
+                [-11,  20,  35, -42, -39,  31,   2, -22],
+                [ -9,  39, -32,  41,  52, -10,  28, -14],
+                [ 25,  17,  20,  34,  26,  25,  15,  10],
+                [ 13,  10,  17,  23,  17,  16,   0,   7],
+                [ 14,  25,  24,  15,   8,  25,  20,  15],
+                [ 19,  20,  11,   6,   7,   6,  20,  16],
+                [ -7,   2, -15, -12, -14, -15, -10, -10]
+            ],
+            'rook': [  
+                [ 35,  29,  33,   4,  37,  33,  56,  50],
+                [ 55,  29,  56,  67,  55,  62,  34,  60],
+                [ 19,  35,  28,  33,  45,  27,  25,  15],
+                [  0,   5,  16,  13,  18,  -4,  -9,  -6],
+                [-28, -35, -16, -21, -13, -29, -46, -30],
+                [-42, -28, -42, -25, -25, -35, -26, -46],
+                [-53, -38, -31, -26, -29, -43, -44, -53],
+                [-30, -24, -18,   5,  -2, -18, -31, -32]
+            ],
+            'queen': [   
+                [  6,   1,  -8,-104,  69,  24,  88,  26],
+                [ 14,  32,  60, -10,  20,  76,  57,  24],
+                [ -2,  43,  32,  60,  72,  63,  43,   2],
+                [  1, -16,  22,  17,  25,  20, -13,  -6],
+                [-14, -15,  -2,  -5,  -1, -10, -20, -22],
+                [-30,  -6, -13, -11, -16, -11, -16, -27],
+                [-36, -18,   0, -19, -15, -15, -21, -38],
+                [-39, -30, -31, -13, -31, -36, -34, -42]
+            ],
+            'king': [  
+                [  4,  54,  47, -99, -99,  60,  83, -62],
+                [-32,  10,  55,  56,  56,  55,  10,   3],
+                [-62,  12, -57,  44, -67,  28,  37, -31],
+                [-55,  50,  11,  -4, -19,  13,   0, -49],
+                [-55, -43, -52, -28, -51, -47,  -8, -50],
+                [-47, -42, -43, -79, -64, -32, -29, -32],
+                [ -4,   3, -14, -50, -57, -18,  13,   4],
+                [ 17,  30,  -3, -14,   6,  -1,  40,  18]
+            ],
+        };
+
+        pawnWeight = [
+                 100, 100, 100, 100, 105, 100, 100, 100,
+                  78,  83,  86,  73, 102,  82,  85,  90,
+                   7,  29,  21,  44,  40,  31,  44,   7,
+                 -17,  16,  -2,  15,  14,   0,  15, -13,
+                 -26,   3,  10,   9,   6,   1,   0, -23,
+                 -22,   9,   5, -11, -10,  -2,   3, -19,
+                 -31,   8,  -7, -37, -36, -14,   3, -31,
+                   0,   0,   0,   0,   0,   0,   0,   0
+        ];
+        pawnWeight = pawnWeight.slice().reverse();
+        
+        knightWeight = [ 
+                -66, -53, -75, -75, -10, -55, -58, -70,
+                 -3,  -6, 100, -36,   4,  62,  -4, -14,
+                 10,  67,   1,  74,  73,  27,  62,  -2,
+                 24,  24,  45,  37,  33,  41,  25,  17,
+                 -1,   5,  31,  21,  22,  35,   2,   0,
+                -18,  10,  13,  22,  18,  15,  11, -14,
+                -23, -15,   2,   0,   2,   0, -23, -20,
+                -74, -23, -26, -24, -19, -35, -22, -69
+        ];
+        knightWeight = knightWeight.slice().reverse();
+
+        bishopWeight = [ 
+                -59, -78, -82, -76, -23,-107, -37, -50,
+                -11,  20,  35, -42, -39,  31,   2, -22,
+                 -9,  39, -32,  41,  52, -10,  28, -14,
+                 25,  17,  20,  34,  26,  25,  15,  10,
+                 13,  10,  17,  23,  17,  16,   0,   7,
+                 14,  25,  24,  15,   8,  25,  20,  15,
+                 19,  20,  11,   6,   7,   6,  20,  16,
+                 -7,   2, -15, -12, -14, -15, -10, -10
+        ];
+        bishopWeight = bishopWeight.slice().reverse();
+
+        rookWeight = [  
+                 35,  29,  33,   4,  37,  33,  56,  50,
+                 55,  29,  56,  67,  55,  62,  34,  60,
+                 19,  35,  28,  33,  45,  27,  25,  15,
+                  0,   5,  16,  13,  18,  -4,  -9,  -6,
+                -28, -35, -16, -21, -13, -29, -46, -30,
+                -42, -28, -42, -25, -25, -35, -26, -46,
+                -53, -38, -31, -26, -29, -43, -44, -53,
+                -30, -24, -18,   5,  -2, -18, -31, -32
+        ];
+        rookWeight = rookWeight.slice().reverse();
+
+        queenWeight = [   
+                  6,   1,  -8,-104,  69,  24,  88,  26,
+                 14,  32,  60, -10,  20,  76,  57,  24,
+                 -2,  43,  32,  60,  72,  63,  43,   2,
+                  1, -16,  22,  17,  25,  20, -13,  -6,
+                -14, -15,  -2,  -5,  -1, -10, -20, -22,
+                -30,  -6, -13, -11, -16, -11, -16, -27,
+                -36, -18,   0, -19, -15, -15, -21, -38,
+                -39, -30, -31, -13, -31, -36, -34, -42
+        ];
+        queenWeight = queenWeight.slice().reverse();
+
+        kingWeight = [  
+                  4,  54,  47, -99, -99,  60,  83, -62,
+                -32,  10,  55,  56,  56,  55,  10,   3,
+                -62,  12, -57,  44, -67,  28,  37, -31,
+                -55,  50,  11,  -4, -19,  13,   0, -49,
+                -55, -43, -52, -28, -51, -47,  -8, -50,
+                -47, -42, -43, -79, -64, -32, -29, -32,
+                 -4,   3, -14, -50, -57, -18,  13,   4,
+                 17,  30,  -3, -14,   6,  -1,  40,  18
+        ];
+        kingWeight = kingWeight.slice().reverse();
+
+        //Piece Square Table for Black (creates new array by slicing, then reverses)
+        var pst_b = {
+            'pawn': pst_w['pawn'].slice().reverse(),
+            'knight': pst_w['knight'].slice().reverse(),
+            'bishop': pst_w['bishop'].slice().reverse(),
+            'rook': pst_w['rook'].slice().reverse(),
+            'queen': pst_w['queen'].slice().reverse(),
+            'king': pst_w['king'].slice().reverse()
+        };
+
+        var pstOpponent = {'w': pst_b, 'b': pst_w};
+        var pstSelf = {'w': pst_w, 'b': pst_b};
+
+        function evaluateBoard(boardX) {
+            var sum = 0;
+            if(boardX == null) return;
+
+            for(var i = 0; i < boardX.length; i++) {
+                if(boardX[i].piece == "pawn" && boardX[i].team == "white") sum += pawnWeight[i] + weights.pawn;
+                if(boardX[i].piece == "pawn" && boardX[i].team == "black") sum += pawnWeight[i] - weights.pawn;
+                if(boardX[i].piece == "knight" && boardX[i].team == "white") sum += knightWeight[i] + weights.knight;
+                if(boardX[i].piece == "knight" && boardX[i].team == "black") sum += knightWeight[i] - weights.knight;
+                if(boardX[i].piece == "king" && boardX[i].team == "white") sum += kingWeight[i] + weights.king;
+                if(boardX[i].piece == "king" && boardX[i].team == "black") sum += kingWeight[i] - weights.king;
+                if(boardX[i].piece == "queen" && boardX[i].team == "white") sum += queenWeight[i] + weights.queen;
+                if(boardX[i].piece == "queen" && boardX[i].team == "black") sum += queenWeight[i] - weights.queen;
+                if(boardX[i].piece == "rook" && boardX[i].team == "white") sum += rookWeight[i] + weights.rook;
+                if(boardX[i].piece == "rook" && boardX[i].team == "black") sum += rookWeight[i] - weights.rook;
+                if(boardX[i].piece == "bishop" && boardX[i].team == "white") sum += bishopWeight[i] + weights.bishop;
+                if(boardX[i].piece == "bishop" && boardX[i].team == "black") sum += bishopWeight[i] - weights.bishop;
+            }
+
+            return sum;
+        }
+
+
+
+        //dummy bot
+        function botMove() {
+
+            if(turn == 1) {
+
+                min = 10000000000000;
+                bestFrom = null;
+                bestTo = null;
+
+                for(var fromLoc = 0; fromLoc < 64; fromLoc++) {
+                    for(var toLoc = 0; toLoc < 64; toLoc++) {
+                        temp = isValidBoard(fromLoc, toLoc);
+                        tempEval = evaluateBoard(temp);
+
+                        if(tempEval < min) {
+                            if(isValidMoveBool(fromLoc, toLoc) == true) {
+                                min = tempEval;
+                                bestFrom = fromLoc;
+                                bestTo = toLoc;
+                            }
+                        }
+                    }
+                }
+
+                isValidMove(bestFrom, bestTo);
+                return;
+
+            }
+
+            else {
+                return;
+            }
+        }
+
+        //check for click event
+        canvas.addEventListener('click', getClick, false);
+        drawBoard();
+
+    }
+    
+</script>
+
+</html>
